@@ -1,0 +1,388 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum UserRole {
+  OWNER
+  ADMIN
+  STAFF
+  MEMBER
+}
+
+enum MemberStatus {
+  ACTIVE
+  LAPSED
+  SUSPENDED
+  PROSPECT
+  ARCHIVED
+}
+
+enum BillingInterval {
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+  TWO_YEAR
+  LIFETIME
+  ONE_TIME
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  STRIPE
+  CHECK
+  CASH
+  OTHER
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+enum ImportStatus {
+  PENDING
+  VALIDATING
+  IMPORTING
+  COMPLETED
+  FAILED
+}
+
+// ─── Multi-tenant Organization ──────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  address   String?
+  city      String?
+  state     String?
+  zip       String?
+  phone     String?
+  email     String?
+  website   String?
+
+  // Stripe Connect
+  stripeConnectAccountId String?
+  stripeConnectOnboarded Boolean @default(false)
+
+  // SaaS subscription
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?
+  stripePriceId          String?
+  subscriptionStatus     String?
+
+  // Settings
+  memberNumberPrefix     String   @default("")
+  duesReminderDays       Int      @default(30)
+  directoryEnabled       Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users          User[]
+  members        Member[]
+  contacts       Contact[]
+  membershipTiers MembershipTier[]
+  payments       Payment[]
+  invoices       Invoice[]
+  emailCampaigns EmailCampaign[]
+  emailTemplates EmailTemplate[]
+  importJobs     ImportJob[]
+  teamInvites    TeamInvite[]
+}
+
+// ─── Auth Models ────────────────────────────────────────
+
+model User {
+  id             String   @id @default(cuid())
+  name           String?
+  email          String
+  emailVerified  DateTime?
+  hashedPassword String?
+  image          String?
+  role           UserRole @default(MEMBER)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email, organizationId])
+  @@index([organizationId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model TeamInvite {
+  id    String   @id @default(cuid())
+  email String
+  role  UserRole @default(STAFF)
+  token String   @unique
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([organizationId])
+}
+
+// ─── Member Management ─────────────────────────────────
+
+model MembershipTier {
+  id              String          @id @default(cuid())
+  name            String
+  description     String?
+  price           Int             @default(0) // cents
+  billingInterval BillingInterval @default(ANNUAL)
+  benefits        String[]
+  isActive        Boolean         @default(true)
+  sortOrder       Int             @default(0)
+
+  // Stripe
+  stripeProductId String?
+  stripePriceId   String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  members Member[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model Member {
+  id           String       @id @default(cuid())
+  memberNumber String?
+  status       MemberStatus @default(PROSPECT)
+
+  // Organization / Household name
+  displayName   String
+  organizationName String?
+
+  // Primary address
+  address1 String?
+  address2 String?
+  city     String?
+  state    String?
+  zip      String?
+  country  String?
+
+  // Membership
+  tierId        String?
+  tier          MembershipTier? @relation(fields: [tierId], references: [id], onDelete: SetNull)
+  joinDate      DateTime?
+  renewalDate   DateTime?
+  expirationDate DateTime?
+
+  // Legacy/import fields
+  legacyId            String?
+  legacyOrganizationId String?
+  memberSince         DateTime?
+
+  // Stripe
+  stripeCustomerId String?
+
+  notes String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  contacts Contact[]
+  payments Payment[]
+  invoices Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, tierId])
+}
+
+model Contact {
+  id        String @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  mobile    String?
+
+  isPrimary Boolean @default(false)
+
+  // Link to member/household
+  memberId String?
+  member   Member? @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  // Legacy
+  legacyId              String?
+  legacyLinkToOrganizationId String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([memberId])
+}
+
+// ─── Payments & Billing ────────────────────────────────
+
+model Payment {
+  id     String        @id @default(cuid())
+  amount Int           // cents
+  status PaymentStatus @default(PENDING)
+  method PaymentMethod @default(STRIPE)
+
+  description    String?
+  stripePaymentId String?
+  paidAt         DateTime?
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  invoiceId String?
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([memberId])
+}
+
+model Invoice {
+  id     String        @id @default(cuid())
+  number String?
+  amount Int           // cents
+  status InvoiceStatus @default(DRAFT)
+
+  description String?
+  dueDate     DateTime?
+  paidAt      DateTime?
+
+  stripeInvoiceId String?
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([memberId])
+}
+
+// ─── Email ─────────────────────────────────────────────
+
+model EmailCampaign {
+  id      String         @id @default(cuid())
+  subject String
+  body    String
+  status  CampaignStatus @default(DRAFT)
+
+  recipientFilter Json?
+  recipientCount  Int     @default(0)
+
+  sentCount    Int @default(0)
+  openedCount  Int @default(0)
+  clickedCount Int @default(0)
+  bouncedCount Int @default(0)
+
+  scheduledAt DateTime?
+  sentAt      DateTime?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model EmailTemplate {
+  id      String @id @default(cuid())
+  name    String
+  subject String
+  body    String
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+// ─── Import ────────────────────────────────────────────
+
+model ImportJob {
+  id       String       @id @default(cuid())
+  fileName String
+  status   ImportStatus @default(PENDING)
+
+  totalRows     Int @default(0)
+  processedRows Int @default(0)
+  errorRows     Int @default(0)
+  skippedRows   Int @default(0)
+
+  columnMapping Json?
+  errors        Json?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([organizationId])
+}
