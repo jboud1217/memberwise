@@ -97,6 +97,25 @@ model Organization {
   stripePriceId          String?
   subscriptionStatus     String?
 
+  // Custom domain (CNAME-based)
+  customDomain         String?
+  domainVerified       Boolean  @default(false)
+
+  // Onboarding
+  onboardingCompleted  Boolean  @default(false)
+  onboardingData       Json?
+
+  // Theme & Layout
+  theme                String   @default("modern-minimal")
+  layoutTemplate       String   @default("starter")
+  pageOverrides        Json?
+
+  // S3-backed site document
+  siteDocumentKey       String?
+  siteDocumentVersion   Int      @default(0)
+  siteDocumentUpdatedAt DateTime?
+  themeOverrides        Json?
+
   // Settings
   memberNumberPrefix     String   @default("")
   duesReminderDays       Int      @default(30)
@@ -115,6 +134,7 @@ model Organization {
   emailTemplates EmailTemplate[]
   importJobs     ImportJob[]
   teamInvites    TeamInvite[]
+  customFields   CustomField[]
 }
 
 // ─── Auth Models ────────────────────────────────────────
@@ -225,9 +245,10 @@ model Member {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  contacts Contact[]
-  payments Payment[]
-  invoices Invoice[]
+  contacts         Contact[]
+  payments         Payment[]
+  invoices         Invoice[]
+  customFieldValues CustomFieldValue[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -257,6 +278,8 @@ model Contact {
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  customFieldValues CustomFieldValue[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -361,6 +384,71 @@ model EmailTemplate {
   updatedAt DateTime @updatedAt
 
   @@index([organizationId])
+}
+
+// ─── Custom Fields ────────────────────────────────────
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  BOOLEAN
+  SELECT
+  MULTI_SELECT
+  URL
+  EMAIL
+  PHONE
+}
+
+enum CustomFieldEntity {
+  MEMBER
+  CONTACT
+}
+
+model CustomField {
+  id          String            @id @default(cuid())
+  name        String            // Display name, e.g. "Street Captain"
+  key         String            // Machine key, e.g. "street_captain"
+  type        CustomFieldType   @default(TEXT)
+  entity      CustomFieldEntity @default(MEMBER)
+  description String?
+  required    Boolean           @default(false)
+  options     String[]          // For SELECT / MULTI_SELECT types
+  sortOrder   Int               @default(0)
+  isActive    Boolean           @default(true)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  values CustomFieldValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+}
+
+model CustomFieldValue {
+  id    String @id @default(cuid())
+  value String // Stored as string, parsed by field type
+
+  fieldId String
+  field   CustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  memberId  String?
+  member    Member?  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([fieldId, memberId])
+  @@unique([fieldId, contactId])
+  @@index([memberId])
+  @@index([contactId])
 }
 
 // ─── Import ────────────────────────────────────────────

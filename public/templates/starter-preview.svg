@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270" fill="none">
+  <defs>
+    <linearGradient id="hero-s" x1="0" y1="0" x2="480" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="480" height="270" rx="8" fill="#f8fafc"/>
+  <rect width="480" height="270" rx="8" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Top Bar Nav -->
+  <rect width="480" height="28" rx="8 8 0 0" fill="#ffffff"/>
+  <rect y="27" width="480" height="1" fill="#e2e8f0"/>
+  <!-- Logo -->
+  <rect x="16" y="8" width="40" height="12" rx="2" fill="#2563eb"/>
+  <!-- Nav links -->
+  <rect x="300" y="10" width="28" height="8" rx="2" fill="#cbd5e1"/>
+  <rect x="336" y="10" width="28" height="8" rx="2" fill="#cbd5e1"/>
+  <rect x="372" y="10" width="28" height="8" rx="2" fill="#cbd5e1"/>
+  <rect x="408" y="10" width="28" height="8" rx="2" fill="#cbd5e1"/>
+  <rect x="444" y="10" width="28" height="8" rx="2" fill="#cbd5e1"/>
+
+  <!-- Hero Section -->
+  <rect y="28" width="480" height="90" fill="url(#hero-s)"/>
+  <!-- Hero text -->
+  <rect x="120" y="48" width="240" height="14" rx="3" fill="#ffffff" opacity="0.95"/>
+  <rect x="140" y="68" width="200" height="8" rx="2" fill="#ffffff" opacity="0.6"/>
+  <rect x="155" y="80" width="170" height="8" rx="2" fill="#ffffff" opacity="0.6"/>
+  <!-- CTA button -->
+  <rect x="195" y="96" width="90" height="16" rx="4" fill="#ffffff" opacity="0.9"/>
+
+  <!-- Features Section -->
+  <rect y="118" width="480" height="80" fill="#ffffff"/>
+  <rect x="170" y="124" width="140" height="10" rx="2" fill="#1e293b" opacity="0.15"/>
+  <!-- Feature cards -->
+  <rect x="24" y="140" width="102" height="50" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <circle cx="75" cy="153" r="7" fill="#2563eb" opacity="0.2"/>
+  <rect x="50" y="164" width="50" height="6" rx="1" fill="#94a3b8" opacity="0.5"/>
+  <rect x="42" y="174" width="66" height="4" rx="1" fill="#cbd5e1" opacity="0.4"/>
+
+  <rect x="138" y="140" width="102" height="50" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <circle cx="189" cy="153" r="7" fill="#2563eb" opacity="0.2"/>
+  <rect x="164" y="164" width="50" height="6" rx="1" fill="#94a3b8" opacity="0.5"/>
+  <rect x="156" y="174" width="66" height="4" rx="1" fill="#cbd5e1" opacity="0.4"/>
+
+  <rect x="252" y="140" width="102" height="50" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <circle cx="303" cy="153" r="7" fill="#2563eb" opacity="0.2"/>
+  <rect x="278" y="164" width="50" height="6" rx="1" fill="#94a3b8" opacity="0.5"/>
+  <rect x="270" y="174" width="66" height="4" rx="1" fill="#cbd5e1" opacity="0.4"/>
+
+  <rect x="366" y="140" width="102" height="50" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <circle cx="417" cy="153" r="7" fill="#2563eb" opacity="0.2"/>
+  <rect x="392" y="164" width="50" height="6" rx="1" fill="#94a3b8" opacity="0.5"/>
+  <rect x="384" y="174" width="66" height="4" rx="1" fill="#cbd5e1" opacity="0.4"/>
+
+  <!-- CTA Section -->
+  <rect y="198" width="480" height="56" fill="#2563eb"/>
+  <rect x="155" y="210" width="170" height="10" rx="2" fill="#ffffff" opacity="0.9"/>
+  <rect x="170" y="226" width="140" height="6" rx="2" fill="#ffffff" opacity="0.5"/>
+  <rect x="205" y="238" width="70" height="12" rx="3" fill="#ffffff" opacity="0.85"/>
+
+  <!-- Footer -->
+  <rect y="254" width="480" height="16" rx="0 0 8 8" fill="#1e293b"/>
+  <rect x="200" y="260" width="80" height="4" rx="1" fill="#94a3b8" opacity="0.3"/>
+
+  <!-- Label -->
+  <text x="240" y="265" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="0" fill="transparent">Starter Template</text>
+</svg>

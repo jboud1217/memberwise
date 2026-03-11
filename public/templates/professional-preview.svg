@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270" fill="none">
+  <defs>
+    <linearGradient id="hero-p" x1="80" y1="0" x2="480" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1b2a4a"/>
+      <stop offset="100%" stop-color="#1e3a5f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="480" height="270" rx="8" fill="#f8fafc"/>
+  <rect width="480" height="270" rx="8" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Sidebar -->
+  <rect width="80" height="270" rx="8 0 0 8" fill="#1e293b"/>
+  <!-- Sidebar logo -->
+  <rect x="18" y="12" width="44" height="14" rx="3" fill="#3b82f6" opacity="0.8"/>
+  <!-- Sidebar nav items -->
+  <rect x="14" y="38" width="52" height="8" rx="2" fill="#ffffff" opacity="0.25"/>
+  <rect x="14" y="54" width="52" height="8" rx="2" fill="#ffffff" opacity="0.15"/>
+  <rect x="14" y="70" width="52" height="8" rx="2" fill="#ffffff" opacity="0.15"/>
+  <rect x="14" y="86" width="52" height="8" rx="2" fill="#ffffff" opacity="0.15"/>
+  <rect x="14" y="102" width="52" height="8" rx="2" fill="#ffffff" opacity="0.15"/>
+  <!-- Active indicator -->
+  <rect x="4" y="36" width="3" height="12" rx="1.5" fill="#3b82f6"/>
+
+  <!-- Hero Section -->
+  <rect x="80" y="0" width="400" height="72" rx="0 8 0 0" fill="url(#hero-p)"/>
+  <rect x="170" y="16" width="220" height="12" rx="3" fill="#ffffff" opacity="0.9"/>
+  <rect x="190" y="34" width="180" height="7" rx="2" fill="#ffffff" opacity="0.5"/>
+  <rect x="240" y="48" width="80" height="14" rx="4" fill="#ffffff" opacity="0.8"/>
+
+  <!-- Stats Bar -->
+  <rect x="80" y="72" width="400" height="36" fill="#f1f5f9"/>
+  <rect x="80" y="107" width="400" height="1" fill="#e2e8f0"/>
+  <!-- Stat items -->
+  <g>
+    <rect x="110" y="78" width="50" height="12" rx="2" fill="#1e293b" opacity="0.7"/>
+    <rect x="114" y="94" width="42" height="6" rx="1" fill="#94a3b8" opacity="0.5"/>
+  </g>
+  <g>
+    <rect x="210" y="78" width="50" height="12" rx="2" fill="#1e293b" opacity="0.7"/>
+    <rect x="214" y="94" width="42" height="6" rx="1" fill="#94a3b8" opacity="0.5"/>
+  </g>
+  <g>
+    <rect x="310" y="78" width="50" height="12" rx="2" fill="#1e293b" opacity="0.7"/>
+    <rect x="314" y="94" width="42" height="6" rx="1" fill="#94a3b8" opacity="0.5"/>
+  </g>
+  <g>
+    <rect x="410" y="78" width="50" height="12" rx="2" fill="#1e293b" opacity="0.7"/>
+    <rect x="414" y="94" width="42" height="6" rx="1" fill="#94a3b8" opacity="0.5"/>
+  </g>
+
+  <!-- Features Section -->
+  <rect x="80" y="108" width="400" height="60" fill="#ffffff"/>
+  <rect x="220" y="114" width="120" height="8" rx="2" fill="#1e293b" opacity="0.15"/>
+  <!-- Feature cards -->
+  <rect x="96" y="128" width="86" height="34" rx="5" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <circle cx="139" cy="138" r="5" fill="#1b2a4a" opacity="0.2"/>
+  <rect x="118" y="148" width="42" height="4" rx="1" fill="#94a3b8" opacity="0.5"/>
+  <rect x="112" y="155" width="54" height="3" rx="1" fill="#cbd5e1" opacity="0.4"/>
+
+  <rect x="196" y="128" width="86" height="34" rx="5" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <circle cx="239" cy="138" r="5" fill="#1b2a4a" opacity="0.2"/>
+  <rect x="218" y="148" width="42" height="4" rx="1" fill="#94a3b8" opacity="0.5"/>
+  <rect x="212" y="155" width="54" height="3" rx="1" fill="#cbd5e1" opacity="0.4"/>
+
+  <rect x="296" y="128" width="86" height="34" rx="5" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <circle cx="339" cy="138" r="5" fill="#1b2a4a" opacity="0.2"/>
+  <rect x="318" y="148" width="42" height="4" rx="1" fill="#94a3b8" opacity="0.5"/>
+  <rect x="312" y="155" width="54" height="3" rx="1" fill="#cbd5e1" opacity="0.4"/>
+
+  <rect x="396" y="128" width="68" height="34" rx="5" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <circle cx="430" cy="138" r="5" fill="#1b2a4a" opacity="0.2"/>
+  <rect x="410" y="148" width="40" height="4" rx="1" fill="#94a3b8" opacity="0.5"/>
+  <rect x="406" y="155" width="48" height="3" rx="1" fill="#cbd5e1" opacity="0.4"/>
+
+  <!-- Testimonials Section -->
+  <rect x="80" y="168" width="400" height="46" fill="#f8fafc"/>
+  <rect x="220" y="172" width="120" height="7" rx="2" fill="#1e293b" opacity="0.12"/>
+  <!-- Testimonial cards -->
+  <rect x="96" y="184" width="120" height="24" rx="5" fill="#ffffff" stroke="#e2e8f0" stroke-width="0.5"/>
+  <rect x="104" y="190" width="80" height="3" rx="1" fill="#94a3b8" opacity="0.4"/>
+  <rect x="104" y="196" width="60" height="3" rx="1" fill="#94a3b8" opacity="0.3"/>
+  <circle cx="110" cy="204" r="3" fill="#1b2a4a" opacity="0.15"/>
+
+  <rect x="228" y="184" width="120" height="24" rx="5" fill="#ffffff" stroke="#e2e8f0" stroke-width="0.5"/>
+  <rect x="236" y="190" width="80" height="3" rx="1" fill="#94a3b8" opacity="0.4"/>
+  <rect x="236" y="196" width="60" height="3" rx="1" fill="#94a3b8" opacity="0.3"/>
+  <circle cx="242" cy="204" r="3" fill="#1b2a4a" opacity="0.15"/>
+
+  <rect x="360" y="184" width="104" height="24" rx="5" fill="#ffffff" stroke="#e2e8f0" stroke-width="0.5"/>
+  <rect x="368" y="190" width="70" height="3" rx="1" fill="#94a3b8" opacity="0.4"/>
+  <rect x="368" y="196" width="55" height="3" rx="1" fill="#94a3b8" opacity="0.3"/>
+  <circle cx="374" cy="204" r="3" fill="#1b2a4a" opacity="0.15"/>
+
+  <!-- CTA Section -->
+  <rect x="80" y="214" width="400" height="40" fill="#1b2a4a"/>
+  <rect x="220" y="222" width="120" height="8" rx="2" fill="#ffffff" opacity="0.85"/>
+  <rect x="240" y="234" width="80" height="5" rx="1" fill="#ffffff" opacity="0.4"/>
+  <rect x="255" y="244" width="50" height="8" rx="3" fill="#ffffff" opacity="0.7"/>
+
+  <!-- Footer -->
+  <rect x="80" y="254" width="400" height="16" rx="0 0 8 0" fill="#0f172a"/>
+  <rect x="250" y="259" width="60" height="4" rx="1" fill="#94a3b8" opacity="0.25"/>
+</svg>

@@ -11,7 +11,7 @@ export async function register(data: RegisterInput) {
     return { error: validated.error.issues[0].message };
   }
 
-  const { organizationName, slug, name, email, password } = validated.data;
+  const { organizationName, slug, name, email, password, domainType, customDomain } = validated.data;
 
   // Check if slug is taken
   const existingOrg = await prisma.organization.findUnique({
@@ -21,6 +21,16 @@ export async function register(data: RegisterInput) {
     return { error: "This organization URL is already taken" };
   }
 
+  // If custom domain, check it's not already used
+  if (domainType === "custom" && customDomain) {
+    const existingDomain = await prisma.organization.findFirst({
+      where: { customDomain: customDomain.toLowerCase() },
+    });
+    if (existingDomain) {
+      return { error: "This domain is already in use by another organization" };
+    }
+  }
+
   // Create organization and owner user
   const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -28,6 +38,12 @@ export async function register(data: RegisterInput) {
     data: {
       name: organizationName,
       slug,
+      ...(domainType === "custom" && customDomain
+        ? {
+            customDomain: customDomain.toLowerCase(),
+            domainVerified: false,
+          }
+        : {}),
       users: {
         create: {
           name,

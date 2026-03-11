@@ -10,8 +10,8 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,65 +46,97 @@ export default function LoginPage() {
   }
 
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <div className="mx-auto mb-4 h-12 w-12 rounded-xl bg-[var(--primary)] flex items-center justify-center">
-          <span className="text-xl font-bold text-[var(--primary-foreground)]">M</span>
+    <div className="space-y-6">
+      {/* Mobile logo */}
+      <div className="lg:hidden flex items-center gap-2.5 justify-center">
+        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-[0_2px_8px_rgba(99,102,241,0.3)]">
+          <span className="text-base font-bold text-white">M</span>
         </div>
-        <CardTitle>Sign in to MemberWise</CardTitle>
-        <CardDescription>Enter your credentials to continue</CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
-          {error && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>
-          )}
+        <span className="text-lg font-semibold tracking-tight">MemberWise</span>
+      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="organizationSlug">Organization</Label>
-            <Input
-              id="organizationSlug"
-              placeholder="your-org-slug"
-              {...register("organizationSlug")}
-            />
-            {errors.organizationSlug && (
-              <p className="text-sm text-red-500">{errors.organizationSlug.message}</p>
-            )}
-          </div>
+      {/* Header */}
+      <div className="animate-fade-in-up">
+        <h2 className="text-xl font-semibold tracking-tight">Welcome back</h2>
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+          Sign in to your MemberWise account
+        </p>
+      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="jane@example.com" {...register("email")} />
-            {errors.email && (
-              <p className="text-sm text-red-500">{errors.email.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              <Link href="/forgot-password" className="text-sm text-[var(--primary)] hover:underline">
-                Forgot password?
-              </Link>
+      {/* Form */}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 animate-fade-in-up" style={{ animationDelay: "60ms" }}>
+        {error && (
+          <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600 flex items-start gap-2.5">
+            <div className="h-5 w-5 rounded-full bg-red-100 flex items-center justify-center shrink-0 mt-px">
+              <span className="text-xs font-bold">!</span>
             </div>
-            <Input id="password" type="password" {...register("password")} />
-            {errors.password && (
-              <p className="text-sm text-red-500">{errors.password.message}</p>
-            )}
+            {error}
           </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? <Spinner className="h-4 w-4" /> : "Sign In"}
-          </Button>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-[var(--primary)] hover:underline">
-              Create one
+        )}
+
+        <div className="space-y-1.5">
+          <Label htmlFor="organizationSlug" className="text-sm font-medium">Organization</Label>
+          <Input
+            id="organizationSlug"
+            placeholder="your-org-slug"
+            className="h-11"
+            {...register("organizationSlug")}
+          />
+          {errors.organizationSlug && (
+            <p className="text-xs text-red-500 mt-1">{errors.organizationSlug.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+          <Input id="email" type="email" placeholder="jane@example.com" className="h-11" {...register("email")} />
+          {errors.email && (
+            <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+            <Link href="/forgot-password" className="text-xs text-[var(--primary)] hover:underline font-medium">
+              Forgot password?
             </Link>
-          </p>
-        </CardFooter>
+          </div>
+          <Input id="password" type="password" className="h-11" {...register("password")} />
+          {errors.password && (
+            <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
+          )}
+        </div>
+
+        <Button type="submit" className="w-full h-11 gap-2 rounded-xl text-sm" disabled={loading}>
+          {loading ? (
+            <>
+              <Spinner className="h-4 w-4" />
+              Signing in...
+            </>
+          ) : (
+            <>
+              Sign In
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
+        </Button>
+
+        {/* Divider + sign up link */}
+        <div className="relative pt-2">
+          <div className="absolute inset-0 flex items-center pt-2">
+            <div className="w-full border-t border-[var(--border)]" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-[var(--background)] px-3 text-xs text-[var(--muted-foreground)]">
+              Don&apos;t have an account?{" "}
+              <Link href="/register" className="text-[var(--primary)] font-medium hover:underline">
+                Create one
+              </Link>
+            </span>
+          </div>
+        </div>
       </form>
-    </Card>
+    </div>
   );
 }

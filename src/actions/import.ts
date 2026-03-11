@@ -2,167 +2,19 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { MemberStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import {
+  type ColumnMapping,
+  getRecordType,
+  getMappedValue,
+  mapStatus,
+  parseMemberType,
+} from "@/lib/import-utils";
 
-// Detect record type from Wild Apricot CSV (matches migrate_membership_db.py logic)
-function isOrgRecord(row: Record<string, string>): boolean {
-  const orgId = row["Organization ID"] || row["organization id"] || "";
-  const linkToOrg = row["Link to organization ID"] || row["link to organization id"] || "";
-  return orgId.trim() !== "" && linkToOrg.trim() === "";
-}
-
-function isContactRecord(row: Record<string, string>): boolean {
-  const linkToOrg = row["Link to organization ID"] || row["link to organization id"] || "";
-  return linkToOrg.trim() !== "";
-}
-
-// Status mapping
-function mapStatus(status: string): MemberStatus {
-  const s = status.toLowerCase().trim();
-  if (s === "active") return "ACTIVE";
-  if (s === "lapsed") return "LAPSED";
-  if (s === "suspended") return "SUSPENDED";
-  return "PROSPECT";
-}
-
-export async function importMembers(
-  rows: Record<string, string>[],
-  columnMapping: Record<string, { target: string; entity: string }>,
-  importJobId: string
-) {
-  const session = await auth();
-  if (!session?.user?.organizationId) throw new Error("Not authenticated");
-
-  const orgId = session.user.organizationId;
-
-  // Create import job
-  await prisma.importJob.update({
-    where: { id: importJobId },
-    data: { status: "IMPORTING", totalRows: rows.length },
-  });
-
-  let processedRows = 0;
-  let errorRows = 0;
-  const errors: { row: number; error: string }[] = [];
-
-  // First pass: create member records from org records and prospect-only records
-  const memberIdMap: Record<string, string> = {}; // legacyId -> memberId
-
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    try {
-      if (isOrgRecord(row) || !isContactRecord(row)) {
-        // This is an organization (household) record or a standalone individual
-        const mapped = mapRow(row, columnMapping, "member");
-        const member = await prisma.member.create({
-          data: {
-            organizationId: orgId,
-            displayName: mapped.organizationName || `${mapped.firstName || ""} ${mapped.lastName || ""}`.trim() || "Unknown",
-            organizationName: mapped.organizationName || null,
-            status: mapped.status ? mapStatus(mapped.status) : "PROSPECT",
-            memberNumber: mapped.memberNumber || null,
-            address1: mapped.address1 || null,
-            city: mapped.city || null,
-            state: mapped.state || null,
-            zip: mapped.zip || null,
-            country: mapped.country || null,
-            legacyId: mapped.legacyId || null,
-            legacyOrganizationId: mapped.legacyOrganizationId || null,
-            memberSince: mapped.memberSince ? tryParseDate(mapped.memberSince) : null,
-            renewalDate: mapped.renewalDate ? tryParseDate(mapped.renewalDate) : null,
-            joinDate: mapped.memberSince ? tryParseDate(mapped.memberSince) : null,
-          },
-        });
-
-        if (mapped.legacyOrganizationId) {
-          memberIdMap[mapped.legacyOrganizationId] = member.id;
-        }
-        if (mapped.legacyId) {
-          memberIdMap[mapped.legacyId] = member.id;
-        }
-
-        // If standalone (not org record), also create a contact
-        if (!isOrgRecord(row)) {
-          const contactMapped = mapRow(row, columnMapping, "contact");
-          if (contactMapped.firstName || contactMapped.lastName) {
-            await prisma.contact.create({
-              data: {
-                organizationId: orgId,
-                firstName: contactMapped.firstName || "",
-                lastName: contactMapped.lastName || "",
-                email: contactMapped.email || null,
-                phone: contactMapped.phone || null,
-                mobile: contactMapped.mobile || null,
-                isPrimary: true,
-                memberId: member.id,
-              },
-            });
-          }
-        }
-      }
-      processedRows++;
-    } catch (err) {
-      errorRows++;
-      errors.push({ row: i + 1, error: String(err) });
-    }
-
-    // Update progress every 50 rows
-    if (i % 50 === 0) {
-      await prisma.importJob.update({
-        where: { id: importJobId },
-        data: { processedRows, errorRows },
-      });
-    }
-  }
-
-  // Second pass: create contact records linked to their org member
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    try {
-      if (isContactRecord(row)) {
-        const contactMapped = mapRow(row, columnMapping, "contact");
-        const memberMapped = mapRow(row, columnMapping, "member");
-        const linkToOrg = row["Link to organization ID"] || row["link to organization id"] || "";
-        const memberId = memberIdMap[linkToOrg.trim()] || null;
-
-        await prisma.contact.create({
-          data: {
-            organizationId: orgId,
-            firstName: contactMapped.firstName || "",
-            lastName: contactMapped.lastName || "",
-            email: contactMapped.email || null,
-            phone: contactMapped.phone || null,
-            mobile: contactMapped.mobile || null,
-            isPrimary: false,
-            memberId,
-            legacyId: memberMapped.legacyId || null,
-            legacyLinkToOrganizationId: linkToOrg.trim() || null,
-          },
-        });
-        processedRows++;
-      }
-    } catch (err) {
-      errorRows++;
-      errors.push({ row: i + 1, error: String(err) });
-    }
-  }
-
-  await prisma.importJob.update({
-    where: { id: importJobId },
-    data: {
-      status: errorRows > 0 ? "COMPLETED" : "COMPLETED",
-      processedRows,
-      errorRows,
-      errors: errors.length > 0 ? errors.slice(0, 100) : undefined,
-      completedAt: new Date(),
-    },
-  });
-
-  revalidatePath("/members");
-  revalidatePath("/contacts");
-
-  return { processedRows, errorRows, errors: errors.slice(0, 20) };
+function tryParseDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 export async function createImportJob(fileName: string) {
@@ -178,22 +30,272 @@ export async function createImportJob(fileName: string) {
   });
 }
 
-function mapRow(
-  row: Record<string, string>,
-  columnMapping: Record<string, { target: string; entity: string }>,
-  entity: "member" | "contact"
-): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [csvCol, mapping] of Object.entries(columnMapping)) {
-    if (mapping.entity === entity && row[csvCol] !== undefined) {
-      result[mapping.target] = row[csvCol];
+export async function importMembers(
+  rows: Record<string, string>[],
+  mapping: Record<string, ColumnMapping>,
+  headers: string[],
+  importJobId: string
+) {
+  const session = await auth();
+  if (!session?.user?.organizationId) throw new Error("Not authenticated");
+  const orgId = session.user.organizationId;
+
+  await prisma.importJob.update({
+    where: { id: importJobId },
+    data: { status: "IMPORTING", totalRows: rows.length },
+  });
+
+  let processedRows = 0;
+  let errorRows = 0;
+  const errors: { row: number; error: string }[] = [];
+
+  // ─── Step 1: Auto-create membership tiers from Member Type values ───
+  const tierMap: Record<string, string> = {}; // tierName -> tierId
+  const seenTypes = new Set<string>();
+
+  for (const row of rows) {
+    const memberType = getMappedValue(row, mapping, "memberType", headers);
+    if (memberType) seenTypes.add(memberType);
+  }
+
+  // Parse unique member types into tiers
+  const tierDedup: Record<string, { name: string; interval: string; price: number }> = {};
+  for (const typeStr of seenTypes) {
+    const parsed = parseMemberType(typeStr);
+    if (!parsed) continue;
+
+    const key = `${parsed.name}|${parsed.interval}`;
+    if (!tierDedup[key] || parsed.price > tierDedup[key].price) {
+      tierDedup[key] = { name: parsed.name, interval: parsed.interval, price: parsed.price };
+    }
+    // Map both the raw type string and the cleaned name to this tier key
+    tierMap[typeStr] = key;
+  }
+
+  // Create tiers in DB
+  const tierIdMap: Record<string, string> = {}; // key -> tierId
+  let sortOrder = 0;
+  for (const [key, tier] of Object.entries(tierDedup)) {
+    const created = await prisma.membershipTier.create({
+      data: {
+        organizationId: orgId,
+        name: tier.name,
+        price: tier.price,
+        billingInterval: tier.interval as "ANNUAL" | "TWO_YEAR" | "MONTHLY",
+        isActive: true,
+        sortOrder: sortOrder++,
+        benefits: [],
+      },
+    });
+    tierIdMap[key] = created.id;
+  }
+
+  // ─── Step 2: Create member records (org records + standalone prospects) ───
+  const memberIdByLegacyId: Record<string, string> = {}; // legacyOrgId -> memberId
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const recordType = getRecordType(row, headers);
+
+    if (recordType === "contact") continue; // handled in step 3
+
+    try {
+      const get = (field: string) => getMappedValue(row, mapping, field, headers);
+
+      const orgName = get("organizationName");
+      const firstName = get("firstName");
+      const lastName = get("lastName");
+      const fullName = get("fullName");
+      const contactName = get("contactName");
+      const status = get("status");
+      const memberType = get("memberType");
+
+      // Build display name: prefer org name, then full name, then first+last, then address
+      let displayName = orgName
+        || fullName
+        || contactName
+        || [firstName, lastName].filter(Boolean).join(" ")
+        || get("address1")
+        || "Unknown";
+
+      // Resolve tier
+      const tierKey = memberType ? tierMap[memberType] : undefined;
+      const tierId = tierKey ? tierIdMap[tierKey] : undefined;
+
+      const member = await prisma.member.create({
+        data: {
+          organizationId: orgId,
+          displayName,
+          organizationName: orgName || null,
+          status: status ? mapStatus(status) : "PROSPECT",
+          memberNumber: get("memberNumber") || null,
+          tierId: tierId || null,
+          // Address: prefer primary, fall back to preferred
+          address1: get("address1") || get("addressPreferred1") || null,
+          address2: get("address2") || get("addressPreferred2") || null,
+          city: get("city") || get("cityPreferred") || null,
+          state: get("state") || get("statePreferred") || null,
+          zip: get("zip") || get("zipPreferred") || null,
+          country: get("country") || get("countryPreferred") || null,
+          // Dates
+          joinDate: tryParseDate(get("joinDate")),
+          expirationDate: tryParseDate(get("expirationDate")),
+          renewalDate: tryParseDate(get("renewalDate")),
+          memberSince: tryParseDate(get("joinDate") || get("createdDate")),
+          // Legacy IDs
+          legacyId: get("legacyId") || null,
+          legacyOrganizationId: get("legacyOrganizationId") || null,
+          // Notes: store committees and other custom data
+          notes: [
+            get("committees") ? `Committees: ${get("committees")}` : "",
+          ].filter(Boolean).join("\n") || null,
+        },
+      });
+
+      // Track legacy ID for linking contacts
+      const legacyOrgId = get("legacyOrganizationId");
+      if (legacyOrgId) memberIdByLegacyId[legacyOrgId] = member.id;
+      const legacyId = get("legacyId");
+      if (legacyId) memberIdByLegacyId[legacyId] = member.id;
+
+      // For standalone records (not org records), also create a contact
+      if (recordType === "standalone" && (firstName || lastName)) {
+        await prisma.contact.create({
+          data: {
+            organizationId: orgId,
+            firstName: firstName || "",
+            lastName: lastName || "",
+            email: get("email") || null,
+            phone: get("phone") || get("phonePreferred") || null,
+            mobile: get("mobile") || null,
+            isPrimary: true,
+            memberId: member.id,
+          },
+        });
+      }
+
+      // Create payment record if dues data exists
+      const duesStr = get("dues");
+      if (duesStr) {
+        const duesAmount = parseFloat(duesStr.replace(/[$,]/g, ""));
+        if (!isNaN(duesAmount) && duesAmount > 0) {
+          await prisma.payment.create({
+            data: {
+              organizationId: orgId,
+              memberId: member.id,
+              amount: Math.round(duesAmount * 100),
+              status: "COMPLETED",
+              method: "OTHER",
+              description: `Imported dues${get("duesYearsPaid") ? ` (${get("duesYearsPaid")} years)` : ""}`,
+              paidAt: tryParseDate(get("paymentDate") || get("postingDate")),
+            },
+          });
+        }
+      }
+
+      // Save custom field values for member entity
+      for (const [colHeader, m] of Object.entries(mapping)) {
+        if (m.entity !== "custom" || !m.customFieldId) continue;
+        const val = (row[colHeader] || "").trim();
+        if (!val) continue;
+
+        // Determine if this custom field is for MEMBER or CONTACT
+        // We save on member here; contact custom fields are handled in step 3
+        await prisma.customFieldValue.upsert({
+          where: { fieldId_memberId: { fieldId: m.customFieldId, memberId: member.id } },
+          create: { fieldId: m.customFieldId, memberId: member.id, value: val },
+          update: { value: val },
+        });
+      }
+
+      processedRows++;
+    } catch (err) {
+      errorRows++;
+      errors.push({ row: i + 2, error: String(err).slice(0, 200) });
+    }
+
+    if (i % 25 === 0) {
+      await prisma.importJob.update({
+        where: { id: importJobId },
+        data: { processedRows, errorRows },
+      });
     }
   }
-  return result;
-}
 
-function tryParseDate(dateStr: string): Date | null {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? null : d;
+  // ─── Step 3: Create contact records linked to their household ───
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (getRecordType(row, headers) !== "contact") continue;
+
+    try {
+      const get = (field: string) => getMappedValue(row, mapping, field, headers);
+      const linkToOrgId = get("linkToOrganizationId");
+      const memberId = linkToOrgId ? memberIdByLegacyId[linkToOrgId] : null;
+
+      const firstName = get("firstName");
+      const lastName = get("lastName");
+
+      const contact = await prisma.contact.create({
+        data: {
+          organizationId: orgId,
+          firstName: firstName || "",
+          lastName: lastName || "",
+          email: get("email") || null,
+          phone: get("phone") || get("phonePreferred") || null,
+          mobile: get("mobile") || null,
+          isPrimary: get("keyContact")?.toLowerCase() === "true",
+          memberId: memberId || null,
+          legacyId: get("legacyId") || null,
+          legacyLinkToOrganizationId: linkToOrgId || null,
+        },
+      });
+
+      // Save custom field values for contact entity
+      for (const [colHeader, m] of Object.entries(mapping)) {
+        if (m.entity !== "custom" || !m.customFieldId) continue;
+        const val = (row[colHeader] || "").trim();
+        if (!val) continue;
+
+        await prisma.customFieldValue.upsert({
+          where: { fieldId_contactId: { fieldId: m.customFieldId, contactId: contact.id } },
+          create: { fieldId: m.customFieldId, contactId: contact.id, value: val },
+          update: { value: val },
+        });
+      }
+
+      processedRows++;
+    } catch (err) {
+      errorRows++;
+      errors.push({ row: i + 2, error: String(err).slice(0, 200) });
+    }
+  }
+
+  // ─── Finalize ───
+  const tiersCreated = Object.keys(tierDedup).length;
+  const membersCreated = Object.keys(memberIdByLegacyId).length +
+    rows.filter((r) => getRecordType(r, headers) === "standalone").length;
+
+  await prisma.importJob.update({
+    where: { id: importJobId },
+    data: {
+      status: "COMPLETED",
+      processedRows,
+      errorRows,
+      errors: errors.length > 0 ? errors.slice(0, 100) : undefined,
+      completedAt: new Date(),
+    },
+  });
+
+  revalidatePath("/members");
+  revalidatePath("/contacts");
+  revalidatePath("/tiers");
+  revalidatePath("/dashboard");
+
+  return {
+    processedRows,
+    errorRows,
+    errors: errors.slice(0, 20),
+    tiersCreated,
+    membersCreated,
+  };
 }

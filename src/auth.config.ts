@@ -5,12 +5,21 @@ export const authConfig = {
     signIn: "/login",
   },
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
+    authorized({ auth, request: { nextUrl, headers } }) {
       const isLoggedIn = !!auth?.user;
       const path = nextUrl.pathname;
 
+      // Subdomain or ?site= requests are public site pages — always allow
+      const host = headers.get("host") || "";
+      const hostname = host.split(":")[0];
+      const isSubdomain =
+        (hostname.endsWith(".localhost") && hostname !== "localhost") ||
+        (hostname !== "localhost" && hostname !== "127.0.0.1" && hostname.split(".").length > 2);
+      const hasSiteParam = nextUrl.searchParams.has("site");
+      if (isSubdomain || hasSiteParam) return true;
+
       // Public routes
-      const publicRoutes = ["/", "/pricing", "/features", "/about"];
+      const publicRoutes = ["/", "/pricing", "/features", "/about", "/contact", "/events"];
       if (publicRoutes.includes(path)) return true;
 
       // Auth routes (login, register, etc.) — redirect to dashboard if logged in
@@ -20,6 +29,11 @@ export const authConfig = {
           return Response.redirect(new URL("/dashboard", nextUrl));
         }
         return true;
+      }
+
+      // Onboarding — requires login but no role check
+      if (path.startsWith("/onboarding")) {
+        return isLoggedIn;
       }
 
       // Dashboard routes — require OWNER, ADMIN, or STAFF

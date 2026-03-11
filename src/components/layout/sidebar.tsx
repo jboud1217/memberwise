@@ -40,7 +40,7 @@ export function Sidebar() {
     <>
       {/* Mobile hamburger */}
       <button
-        className="fixed top-4 left-4 z-50 rounded-md bg-[var(--card)] p-2 shadow-md lg:hidden"
+        className="fixed top-4 left-4 z-50 rounded-xl bg-[var(--card)] p-2.5 shadow-[var(--shadow-md)] lg:hidden transition-transform active:scale-95"
         onClick={() => setMobileOpen(!mobileOpen)}
       >
         {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -49,7 +49,7 @@ export function Sidebar() {
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden animate-fade-in"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -57,20 +57,23 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-[var(--border)] bg-[var(--card)] transition-transform lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-[var(--border)] bg-[var(--card)]/80 backdrop-blur-xl transition-transform duration-300 lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Logo */}
-        <div className="flex h-16 items-center gap-2 border-b border-[var(--border)] px-6">
-          <div className="h-8 w-8 rounded-lg bg-[var(--primary)] flex items-center justify-center">
-            <span className="text-sm font-bold text-[var(--primary-foreground)]">M</span>
+        <div className="flex h-16 items-center gap-3 border-b border-[var(--border)] px-6">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-[0_2px_8px_rgba(99,102,241,0.3)]">
+            <span className="text-sm font-bold text-white">M</span>
           </div>
-          <span className="text-lg font-semibold">MemberWise</span>
+          <div>
+            <span className="text-base font-semibold tracking-tight">MemberWise</span>
+            <span className="ml-1.5 rounded-md bg-[var(--accent)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent-foreground)]">Beta</span>
+          </div>
         </div>
 
         {/* Nav links */}
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="flex-1 space-y-0.5 px-3 py-4">
           {navigation.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
@@ -79,21 +82,24 @@ export function Sidebar() {
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   isActive
-                    ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-[0_2px_12px_rgba(99,102,241,0.35)]"
                     : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
                 )}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className={cn("h-[18px] w-[18px] transition-transform duration-200", !isActive && "group-hover:scale-110")} />
                 {item.name}
+                {isActive && (
+                  <div className="absolute right-3 h-1.5 w-1.5 rounded-full bg-white/80" />
+                )}
               </Link>
             );
           })}
         </nav>
 
         {/* Bottom nav */}
-        <div className="border-t border-[var(--border)] px-3 py-4 space-y-1">
+        <div className="border-t border-[var(--border)] px-3 py-4 space-y-0.5">
           {bottomNavigation.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
@@ -102,13 +108,13 @@ export function Sidebar() {
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   isActive
-                    ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-[0_2px_12px_rgba(99,102,241,0.35)]"
                     : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
                 )}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className="h-[18px] w-[18px]" />
                 {item.name}
               </Link>
             );
@@ -116,9 +122,9 @@ export function Sidebar() {
           <form action="/api/auth/signout" method="POST">
             <button
               type="submit"
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--muted-foreground)] transition-all duration-200 hover:bg-red-500/10 hover:text-red-500"
             >
-              <LogOut className="h-5 w-5" />
+              <LogOut className="h-[18px] w-[18px]" />
               Sign Out
             </button>
           </form>

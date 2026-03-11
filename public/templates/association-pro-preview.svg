@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" fill="none">
+  <defs>
+    <linearGradient id="hero-ap" x1="0" y1="0" x2="800" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1e3a5f"/>
+      <stop offset="100%" stop-color="#1e40af"/>
+    </linearGradient>
+    <linearGradient id="accent-ap" x1="0" y1="0" x2="200" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="450" rx="10" fill="#f8fafc"/>
+  <rect width="800" height="450" rx="10" fill="none" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Top Bar Nav -->
+  <rect width="800" height="44" rx="10 10 0 0" fill="#0f172a"/>
+  <!-- Logo placeholder -->
+  <rect x="28" y="12" width="68" height="20" rx="3" fill="#3b82f6"/>
+  <!-- Nav links -->
+  <rect x="420" y="16" width="50" height="12" rx="2" fill="#94a3b8" opacity="0.5"/>
+  <rect x="484" y="16" width="50" height="12" rx="2" fill="#94a3b8" opacity="0.5"/>
+  <rect x="548" y="16" width="50" height="12" rx="2" fill="#94a3b8" opacity="0.5"/>
+  <rect x="612" y="16" width="50" height="12" rx="2" fill="#94a3b8" opacity="0.5"/>
+  <!-- Login button -->
+  <rect x="696" y="12" width="76" height="20" rx="4" fill="#3b82f6"/>
+
+  <!-- Hero Section -->
+  <rect y="44" width="800" height="140" fill="url(#hero-ap)"/>
+  <!-- Left side: text content -->
+  <rect x="60" y="72" width="320" height="16" rx="4" fill="#ffffff" opacity="0.95"/>
+  <rect x="60" y="96" width="260" height="10" rx="3" fill="#ffffff" opacity="0.5"/>
+  <rect x="60" y="112" width="220" height="10" rx="3" fill="#ffffff" opacity="0.5"/>
+  <!-- Two CTA buttons -->
+  <rect x="60" y="134" width="110" height="22" rx="4" fill="#3b82f6"/>
+  <rect x="182" y="134" width="110" height="22" rx="4" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.7"/>
+  <!-- Right side: credential badge graphic -->
+  <rect x="520" y="64" width="220" height="110" rx="10" fill="#ffffff" opacity="0.08"/>
+  <rect x="560" y="80" width="140" height="80" rx="8" fill="#ffffff" opacity="0.1"/>
+  <!-- Shield / certificate icon -->
+  <circle cx="630" cy="108" r="24" fill="#ffffff" opacity="0.12"/>
+  <rect x="618" y="92" width="24" height="30" rx="3" fill="#ffffff" opacity="0.2"/>
+  <circle cx="630" cy="100" r="6" fill="#3b82f6" opacity="0.5"/>
+  <rect x="622" y="110" width="16" height="4" rx="1" fill="#3b82f6" opacity="0.4"/>
+
+  <!-- Credentials / Certifications Section -->
+  <rect y="184" width="800" height="100" fill="#ffffff"/>
+  <rect x="260" y="192" width="280" height="12" rx="3" fill="#0f172a" opacity="0.12"/>
+
+  <!-- Credential cards -->
+  <rect x="40" y="212" width="168" height="64" rx="8" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="76" cy="232" r="10" fill="#1e40af" opacity="0.15"/>
+  <rect x="94" y="228" width="96" height="8" rx="2" fill="#1e3a5f" opacity="0.2"/>
+  <rect x="54" y="250" width="140" height="6" rx="2" fill="#94a3b8" opacity="0.3"/>
+  <rect x="62" y="262" width="124" height="6" rx="2" fill="#94a3b8" opacity="0.2"/>
+
+  <rect x="224" y="212" width="168" height="64" rx="8" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="260" cy="232" r="10" fill="#1e40af" opacity="0.15"/>
+  <rect x="278" y="228" width="96" height="8" rx="2" fill="#1e3a5f" opacity="0.2"/>
+  <rect x="238" y="250" width="140" height="6" rx="2" fill="#94a3b8" opacity="0.3"/>
+  <rect x="246" y="262" width="124" height="6" rx="2" fill="#94a3b8" opacity="0.2"/>
+
+  <rect x="408" y="212" width="168" height="64" rx="8" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="444" cy="232" r="10" fill="#1e40af" opacity="0.15"/>
+  <rect x="462" y="228" width="96" height="8" rx="2" fill="#1e3a5f" opacity="0.2"/>
+  <rect x="422" y="250" width="140" height="6" rx="2" fill="#94a3b8" opacity="0.3"/>
+  <rect x="430" y="262" width="124" height="6" rx="2" fill="#94a3b8" opacity="0.2"/>
+
+  <rect x="592" y="212" width="168" height="64" rx="8" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="628" cy="232" r="10" fill="#1e40af" opacity="0.15"/>
+  <rect x="646" y="228" width="96" height="8" rx="2" fill="#1e3a5f" opacity="0.2"/>
+  <rect x="606" y="250" width="140" height="6" rx="2" fill="#94a3b8" opacity="0.3"/>
+  <rect x="614" y="262" width="124" height="6" rx="2" fill="#94a3b8" opacity="0.2"/>
+
+  <!-- Features Grid Section -->
+  <rect y="284" width="800" height="96" fill="#f8fafc"/>
+  <rect x="300" y="292" width="200" height="10" rx="3" fill="#0f172a" opacity="0.1"/>
+
+  <!-- Feature grid: 2x3 -->
+  <rect x="40" y="310" width="232" height="32" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="62" cy="326" r="8" fill="#3b82f6" opacity="0.2"/>
+  <rect x="78" y="320" width="120" height="6" rx="2" fill="#334155" opacity="0.2"/>
+  <rect x="78" y="330" width="90" height="5" rx="2" fill="#94a3b8" opacity="0.25"/>
+
+  <rect x="284" y="310" width="232" height="32" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="306" cy="326" r="8" fill="#3b82f6" opacity="0.2"/>
+  <rect x="322" y="320" width="120" height="6" rx="2" fill="#334155" opacity="0.2"/>
+  <rect x="322" y="330" width="90" height="5" rx="2" fill="#94a3b8" opacity="0.25"/>
+
+  <rect x="528" y="310" width="232" height="32" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="550" cy="326" r="8" fill="#3b82f6" opacity="0.2"/>
+  <rect x="566" y="320" width="120" height="6" rx="2" fill="#334155" opacity="0.2"/>
+  <rect x="566" y="330" width="90" height="5" rx="2" fill="#94a3b8" opacity="0.25"/>
+
+  <rect x="40" y="348" width="232" height="32" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="62" cy="364" r="8" fill="#3b82f6" opacity="0.2"/>
+  <rect x="78" y="358" width="120" height="6" rx="2" fill="#334155" opacity="0.2"/>
+  <rect x="78" y="368" width="90" height="5" rx="2" fill="#94a3b8" opacity="0.25"/>
+
+  <rect x="284" y="348" width="232" height="32" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="306" cy="364" r="8" fill="#3b82f6" opacity="0.2"/>
+  <rect x="322" y="358" width="120" height="6" rx="2" fill="#334155" opacity="0.2"/>
+  <rect x="322" y="368" width="90" height="5" rx="2" fill="#94a3b8" opacity="0.25"/>
+
+  <rect x="528" y="348" width="232" height="32" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="550" cy="364" r="8" fill="#3b82f6" opacity="0.2"/>
+  <rect x="566" y="358" width="120" height="6" rx="2" fill="#334155" opacity="0.2"/>
+  <rect x="566" y="368" width="90" height="5" rx="2" fill="#94a3b8" opacity="0.25"/>
+
+  <!-- FAQ Accordion Section -->
+  <rect y="380" width="800" height="46" fill="#ffffff"/>
+  <rect x="300" y="386" width="200" height="8" rx="2" fill="#0f172a" opacity="0.1"/>
+  <!-- Accordion rows -->
+  <rect x="120" y="398" width="560" height="10" rx="3" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <rect x="128" y="400" width="180" height="6" rx="2" fill="#64748b" opacity="0.2"/>
+  <rect x="652" y="400" width="12" height="6" rx="1" fill="#94a3b8" opacity="0.3"/>
+
+  <rect x="120" y="412" width="560" height="10" rx="3" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="0.5"/>
+  <rect x="128" y="414" width="200" height="6" rx="2" fill="#64748b" opacity="0.2"/>
+  <rect x="652" y="414" width="12" height="6" rx="1" fill="#94a3b8" opacity="0.3"/>
+
+  <!-- Footer -->
+  <rect y="426" width="800" height="24" rx="0 0 10 10" fill="#0f172a"/>
+  <rect x="320" y="434" width="160" height="6" rx="2" fill="#475569" opacity="0.4"/>
+
+  <!-- Label -->
+  <text x="400" y="444" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="0" fill="transparent">Association Pro Template</text>
+</svg>
