@@ -22,10 +22,9 @@ export default async function DashboardLayout({
     if (org) {
       if (org.customDomain && org.domainVerified) {
         siteUrl = `https://${org.customDomain}`;
-      } else if (process.env.NODE_ENV === "production") {
-        siteUrl = `https://${org.slug}.${process.env.NEXT_PUBLIC_APP_DOMAIN || "memberwise.com"}`;
       } else {
-        siteUrl = `http://localhost:3000?site=${org.slug}`;
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        siteUrl = `${appUrl}?site=${org.slug}`;
       }
     }
   }

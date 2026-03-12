@@ -26,10 +26,8 @@ export default async function TemplateSettingsPage() {
   if (org?.customDomain) {
     siteUrl = `https://${org.customDomain}`;
   } else if (org?.slug) {
-    siteUrl =
-      process.env.NODE_ENV === "production"
-        ? `https://${org.slug}.${process.env.NEXT_PUBLIC_APP_DOMAIN || "memberwise.com"}`
-        : `http://localhost:3000?site=${org.slug}`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    siteUrl = `${appUrl}?site=${org.slug}`;
   }
 
   return (
