@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, type RegisterInput } from "@/lib/validators/auth";
 import { register } from "@/actions/auth";
+import { signIn } from "next-auth/react";
 import { useAuthStep } from "../layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,9 +140,21 @@ export default function RegisterPage() {
     if (result.error) {
       setError(result.error);
       setLoading(false);
-    } else {
-      router.push("/onboarding");
+      return;
     }
+    // Sign in client-side (properly sets auth cookie via HTTP)
+    const signInResult = await signIn("credentials", {
+      email: data.email,
+      password: data.password,
+      organizationSlug: data.slug,
+      redirect: false,
+    });
+    if (signInResult?.error) {
+      setError("Account created but auto-login failed. Please log in manually.");
+      setLoading(false);
+      return;
+    }
+    window.location.href = "/onboarding";
   }
 
   return (

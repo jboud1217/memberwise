@@ -4,6 +4,8 @@ import { getOrgSiteDocumentCached } from "@/lib/site-document";
 import { headers } from "next/headers";
 import Link from "next/link";
 import type { SiteHeader, SiteFooter, SiteFonts } from "@/lib/types/site-document";
+import { PreviewListener } from "./preview-listener";
+import { ScrollAnimator } from "@/components/templates/sections/scroll-animator";
 
 async function getOrgFromHost() {
   const headersList = await headers();
@@ -159,10 +161,16 @@ export default async function SiteLayout({
   children: React.ReactNode;
 }) {
   const org = await getOrgFromHost();
-  const themeId = org?.theme || "modern-minimal";
+
+  // No org found — this is the MemberWise marketing site, render children plain
+  if (!org) {
+    return <>{children}</>;
+  }
+
+  const themeId = org.theme || "modern-minimal";
 
   // Load the full S3-backed site document (with DB fallback)
-  const siteDoc = org?.id ? await getOrgSiteDocumentCached(org.id) : null;
+  const siteDoc = await getOrgSiteDocumentCached(org.id);
 
   // Theme variable overrides from the document
   const themeVarOverrides = siteDoc?.global.theme?.variables || {};
@@ -173,12 +181,15 @@ export default async function SiteLayout({
   return (
     <ThemeProvider themeId={themeId}>
       <div
+        data-theme-container
         className="min-h-screen bg-[var(--background)]"
         style={{
           ...themeVarOverrides,
           ...(bodyFont ? { fontFamily: `"${bodyFont}", sans-serif` } : {}),
         } as React.CSSProperties}
       >
+        <PreviewListener />
+        <ScrollAnimator />
         <FontLoader fonts={siteDoc?.global.fonts} />
 
         {/* Custom CSS injection */}
@@ -190,14 +201,14 @@ export default async function SiteLayout({
         {siteDoc?.global.header ? (
           <DataDrivenHeader
             header={siteDoc.global.header}
-            siteName={org?.name || "MemberWise"}
-            logo={org?.logo || siteDoc.global.logo}
+            siteName={org.name || "MemberWise"}
+            logo={org.logo || siteDoc.global.logo}
           />
         ) : (
           <header className="border-b border-[var(--border)] bg-[var(--card)]">
             <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
               <Link href="/" className="text-lg font-semibold text-[var(--card-foreground)]">
-                {org?.name || "MemberWise"}
+                {org.name || "MemberWise"}
               </Link>
             </div>
           </header>
@@ -207,7 +218,7 @@ export default async function SiteLayout({
 
         {/* Data-driven footer from SiteDocument */}
         {siteDoc?.global.footer && (
-          <DataDrivenFooter footer={siteDoc.global.footer} siteName={org?.name || "MemberWise"} />
+          <DataDrivenFooter footer={siteDoc.global.footer} siteName={org.name || "MemberWise"} />
         )}
       </div>
     </ThemeProvider>

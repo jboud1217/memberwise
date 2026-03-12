@@ -16,6 +16,8 @@ export const memberSchema = z.object({
   expirationDate: z.string().optional(),
   memberNumber: z.string().optional(),
   notes: z.string().optional(),
+  doNotEmail: z.boolean().optional(),
+  doNotMail: z.boolean().optional(),
 });
 
 export type MemberInput = z.infer<typeof memberSchema>;

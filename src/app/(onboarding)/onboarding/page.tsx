@@ -143,7 +143,7 @@ export default function OnboardingPage() {
     setSaving(true);
     setError(null);
     try {
-      await saveOnboardingData({
+      const result = await saveOnboardingData({
         organizationType: orgType,
         approximateMemberCount: memberCount,
         priorityFeatures: features,
@@ -153,6 +153,15 @@ export default function OnboardingPage() {
         layoutTemplate: selectedTemplate,
         completedAt: new Date().toISOString(),
       });
+      if (!result.success) {
+        if (result.error === "session_expired") {
+          router.push("/login");
+          return;
+        }
+        setError("Something went wrong. Please try again.");
+        setSaving(false);
+        return;
+      }
       router.push(redirectTo);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");

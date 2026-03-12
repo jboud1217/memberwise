@@ -6,6 +6,27 @@
  * Rendering reads this document (cached) — no merge logic at render time.
  */
 
+export interface GradientStop {
+  color: string;
+  position: number;
+}
+
+export interface BackgroundGradient {
+  type: "linear" | "radial";
+  angle?: number;
+  stops: GradientStop[];
+}
+
+export type AnimationType =
+  | "none"
+  | "fade-in"
+  | "slide-up"
+  | "slide-down"
+  | "slide-left"
+  | "slide-right"
+  | "zoom-in"
+  | "blur-in";
+
 export interface SectionStyle {
   backgroundColor?: string;
   textColor?: string;
@@ -16,6 +37,28 @@ export interface SectionStyle {
   borderRadius?: string;
   customClassName?: string;
   fontFamily?: string;
+
+  // Gradients
+  backgroundGradient?: BackgroundGradient;
+
+  // Animations & Effects
+  animation?: AnimationType;
+  animationDelay?: string;
+  parallax?: boolean;
+  parallaxSpeed?: number;
+
+  // Borders & Shadows
+  boxShadow?: "none" | "sm" | "md" | "lg" | "xl" | "2xl";
+  borderTop?: string;
+  borderBottom?: string;
+
+  // Spacing
+  marginTop?: string;
+  marginBottom?: string;
+
+  // Layout
+  minHeight?: string;
+  verticalAlign?: "top" | "center" | "bottom";
 }
 
 export interface SiteFonts {
@@ -105,7 +148,29 @@ export type SectionType =
   | "events-list"
   | "directory-grid"
   | "faq"
-  | "gallery";
+  | "gallery"
+  // Content
+  | "rich-text"
+  | "image-banner"
+  | "video-embed"
+  | "custom-html"
+  // Layout
+  | "cards"
+  | "pricing"
+  | "team"
+  | "logo-cloud"
+  | "timeline"
+  // Widgets
+  | "social-feed"
+  | "google-reviews"
+  | "google-map"
+  | "calendar-widget"
+  | "newsletter-signup"
+  | "countdown"
+  | "social-links"
+  // Utility
+  | "spacer"
+  | "divider";
 
 export interface SectionDocument {
   id: string;

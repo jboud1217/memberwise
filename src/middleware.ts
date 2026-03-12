@@ -18,11 +18,17 @@ function getSubdomainSlug(host: string): string | null {
   return null;
 }
 
+const PROTECTED_PREFIXES = ["/dashboard", "/members", "/contacts", "/tiers", "/billing", "/email", "/analytics", "/settings", "/portal", "/onboarding", "/api"];
+
 export default auth((req) => {
   const host = req.headers.get("host") || "";
   const slug = getSubdomainSlug(host);
-  // Also support ?site=slug for easy local dev testing
-  const siteParam = req.nextUrl.searchParams.get("site");
+
+  // ?site= param only applies to public site routes (not protected routes)
+  const path = req.nextUrl.pathname;
+  const isProtected = PROTECTED_PREFIXES.some((p) => path.startsWith(p));
+  const siteParam = !isProtected ? req.nextUrl.searchParams.get("site") : null;
+
   const orgSlug = slug || siteParam;
 
   if (orgSlug) {

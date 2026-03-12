@@ -1,10 +1,15 @@
 import { auth } from "@/auth";
+import { getDashboardStats } from "@/actions/dashboard";
+import { getRecentActivity } from "@/actions/activity";
+import { formatCurrency } from "@/lib/utils";
 import {
   Users,
   UserCheck,
   UserX,
   DollarSign,
   ArrowRight,
+  ArrowUpRight,
+  ArrowDownRight,
   Sparkles,
   CheckCircle2,
   Zap,
@@ -13,258 +18,312 @@ import {
   Mail,
   Upload,
   Tag,
-  TrendingUp,
   Activity,
   BarChart3,
+  Clock,
+  Plus,
+  TrendingUp,
+  UserPlus,
 } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+
+interface ActivityItem {
+  id: string;
+  type: string;
+  description: string;
+  createdAt: Date;
+  memberId?: string | null;
+}
+
+const ACTIVITY_META: Record<string, { color: string; bg: string; href?: (i: ActivityItem) => string }> = {
+  member_created: { color: "text-emerald-600", bg: "bg-emerald-50", href: (i) => i.memberId ? `/members/${i.memberId}` : "/members" },
+  member_updated: { color: "text-blue-600", bg: "bg-blue-50", href: (i) => i.memberId ? `/members/${i.memberId}` : "/members" },
+  member_deleted: { color: "text-red-600", bg: "bg-red-50", href: () => "/members" },
+  contact_created: { color: "text-indigo-600", bg: "bg-indigo-50", href: () => "/contacts" },
+  payment_recorded: { color: "text-amber-600", bg: "bg-amber-50", href: () => "/billing" },
+  campaign_sent: { color: "text-purple-600", bg: "bg-purple-50", href: () => "/email/new" },
+  import_completed: { color: "text-teal-600", bg: "bg-teal-50", href: () => "/members" },
+  data_exported: { color: "text-slate-600", bg: "bg-slate-50", href: () => "/members" },
+  team_invite_sent: { color: "text-pink-600", bg: "bg-pink-50", href: () => "/settings/team" },
+};
+
+function timeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 export default async function DashboardPage() {
   const session = await auth();
+  const [dashData, recentActivity] = await Promise.all([
+    getDashboardStats(),
+    getRecentActivity(10),
+  ]);
 
   const stats = [
     {
       name: "Total Members",
-      value: "0",
+      value: dashData?.totalMembers ?? 0,
       icon: Users,
-      gradient: "from-indigo-500 to-purple-600",
-      glow: "rgba(99,102,241,0.2)",
+      href: "/members",
+      color: "text-indigo-600",
+      bg: "bg-indigo-50",
+      iconBg: "from-indigo-500 to-indigo-600",
     },
     {
-      name: "Active",
-      value: "0",
+      name: "Active Members",
+      value: dashData?.activeMembers ?? 0,
       icon: UserCheck,
-      gradient: "from-emerald-500 to-teal-600",
-      glow: "rgba(16,185,129,0.2)",
+      href: "/members?status=ACTIVE",
+      color: "text-emerald-600",
+      bg: "bg-emerald-50",
+      iconBg: "from-emerald-500 to-emerald-600",
+      percent: dashData?.totalMembers ? Math.round(((dashData?.activeMembers ?? 0) / dashData.totalMembers) * 100) : 0,
     },
     {
       name: "Lapsed",
-      value: "0",
+      value: dashData?.lapsedMembers ?? 0,
       icon: UserX,
-      gradient: "from-amber-500 to-orange-600",
-      glow: "rgba(245,158,11,0.2)",
+      href: "/members?status=LAPSED",
+      color: "text-amber-600",
+      bg: "bg-amber-50",
+      iconBg: "from-amber-500 to-orange-600",
     },
     {
       name: "Revenue (YTD)",
-      value: "$0",
+      value: formatCurrency(dashData?.revenueYTD ?? 0),
       icon: DollarSign,
-      gradient: "from-rose-500 to-pink-600",
-      glow: "rgba(244,63,94,0.2)",
+      href: "/billing",
+      color: "text-emerald-600",
+      bg: "bg-emerald-50",
+      iconBg: "from-emerald-500 to-teal-600",
+      isRevenue: true,
     },
   ];
+
+  const completedSteps = dashData?.completedSteps ?? 0;
+  const stepStatus = dashData?.steps ?? { tiers: false, members: false, stripe: false, email: false, domain: false };
+  const showOnboarding = completedSteps < 5;
 
   const steps = [
-    {
-      label: "Set up membership tiers",
-      description: "Define pricing plans for your members",
-      href: "/tiers",
-      icon: Tag,
-      gradient: "from-violet-500 to-purple-600",
-    },
-    {
-      label: "Import your members",
-      description: "Upload a CSV or add members manually",
-      href: "/members/import",
-      icon: Upload,
-      gradient: "from-blue-500 to-indigo-600",
-    },
-    {
-      label: "Connect Stripe for payments",
-      description: "Accept online dues and donations",
-      href: "/settings/billing",
-      icon: CreditCard,
-      gradient: "from-emerald-500 to-teal-600",
-    },
-    {
-      label: "Send your first email",
-      description: "Reach your members with a campaign",
-      href: "/email/new",
-      icon: Mail,
-      gradient: "from-amber-500 to-orange-600",
-    },
-    {
-      label: "Set up your public site",
-      description: "Configure your domain and design",
-      href: "/settings/domain",
-      icon: Globe,
-      gradient: "from-rose-500 to-pink-600",
-    },
-  ];
-
-  const quickActions = [
-    { label: "Add Member", href: "/members?action=new", icon: Users, color: "text-indigo-500" },
-    { label: "Send Email", href: "/email/new", icon: Mail, color: "text-purple-500" },
-    { label: "View Analytics", href: "/analytics", icon: BarChart3, color: "text-emerald-500" },
-    { label: "Site Builder", href: "/settings/template", icon: Globe, color: "text-rose-500" },
+    { label: "Set up membership tiers", description: "Define pricing plans", href: "/tiers", icon: Tag, done: stepStatus.tiers },
+    { label: "Import your members", description: "Upload a CSV or add manually", href: "/members/import", icon: Upload, done: stepStatus.members },
+    { label: "Connect Stripe", description: "Accept online payments", href: "/settings/billing", icon: CreditCard, done: stepStatus.stripe },
+    { label: "Send first email", description: "Reach your members", href: "/email/new", icon: Mail, done: stepStatus.email },
+    { label: "Set up public site", description: "Your member portal", href: "/settings/domain", icon: Globe, done: stepStatus.domain },
   ];
 
   return (
-    <div className="space-y-8">
-      {/* Hero banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-8 text-white shadow-[0_8px_32px_rgba(0,0,0,0.12)] animate-fade-in-up">
-        {/* Decorative background */}
-        <div className="pointer-events-none absolute inset-0">
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(ellipse 60% 50% at 70% -10%, rgba(99,102,241,0.35) 0%, transparent 60%), radial-gradient(ellipse 40% 40% at 10% 80%, rgba(139,92,246,0.2) 0%, transparent 50%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)",
-              backgroundSize: "20px 20px",
-            }}
-          />
+    <div className="space-y-6">
+      {/* Greeting */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {getGreeting()}{session?.user?.name ? `, ${session.user.name}` : ""}
+          </h1>
+          <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
+            Here&apos;s what&apos;s happening with your organization today.
+          </p>
         </div>
-
-        <div className="relative flex items-start justify-between">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-indigo-200 backdrop-blur-sm">
-              <Sparkles className="h-3 w-3" />
-              Dashboard
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Welcome back{session?.user?.name ? `, ${session.user.name}` : ""}
-            </h1>
-            <p className="mt-2 max-w-lg text-sm text-slate-400">
-              Here&apos;s an overview of your organization. Complete the setup steps below to unlock the full power of MemberWise.
-            </p>
-          </div>
-          <div className="hidden items-center gap-2 md:flex">
-            <Link
-              href="/members/import"
-              className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/20 active:scale-[0.98]"
-            >
-              <Upload className="h-4 w-4" />
-              Import
-            </Link>
-            <Link
-              href="/settings/template"
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-medium text-white shadow-[0_2px_12px_rgba(99,102,241,0.4)] transition-all duration-200 hover:bg-indigo-400 hover:shadow-[0_4px_20px_rgba(99,102,241,0.5)] active:scale-[0.98]"
-            >
-              <Zap className="h-4 w-4" />
-              Build Site
-            </Link>
-          </div>
+        <div className="hidden gap-2 sm:flex">
+          <Link href="/members/new">
+            <Button variant="outline" size="sm">
+              <UserPlus className="h-4 w-4" />
+              Add Member
+            </Button>
+          </Link>
+          <Link href="/email/new">
+            <Button size="sm">
+              <Mail className="h-4 w-4" />
+              Send Email
+            </Button>
+          </Link>
         </div>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 stagger-children">
+      {/* Stats */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <div
-            key={stat.name}
-            className="group relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-sm)] transition-all duration-300 hover:shadow-[var(--shadow-md)] hover:border-[var(--ring)]/30"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
-                  {stat.name}
-                </p>
-                <p className="mt-2 text-3xl font-bold tracking-tight">{stat.value}</p>
-              </div>
-              <div
-                className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${stat.gradient} shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl`}
-                style={{ boxShadow: `0 4px 14px ${stat.glow}` }}
-              >
-                <stat.icon className="h-5 w-5 text-white" />
-              </div>
-            </div>
-            <div
-              className={`absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r ${stat.gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {quickActions.map((action) => (
           <Link
-            key={action.label}
-            href={action.href}
-            className="group flex flex-col items-center gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 text-center transition-all duration-200 hover:border-[var(--ring)]/30 hover:shadow-[var(--shadow-md)] active:scale-[0.98]"
+            key={stat.name}
+            href={stat.href}
+            className="group relative flex items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-xs)] transition-all duration-200 hover:shadow-[var(--shadow-md)] hover:border-[var(--ring)]/30"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--muted)] transition-colors duration-200 group-hover:bg-[var(--accent)]">
-              <action.icon className={`h-5 w-5 ${action.color} transition-transform duration-200 group-hover:scale-110`} />
+            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${stat.iconBg} shadow-sm`}>
+              <stat.icon className="h-5 w-5 text-white" />
             </div>
-            <span className="text-sm font-medium">{action.label}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-[var(--muted-foreground)] truncate">{stat.name}</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold tracking-tight">
+                  {typeof stat.value === "number" ? stat.value.toLocaleString() : stat.value}
+                </p>
+                {stat.percent !== undefined && stat.percent > 0 && (
+                  <span className="text-xs font-medium text-emerald-600">{stat.percent}%</span>
+                )}
+              </div>
+            </div>
+            <ArrowUpRight className="h-4 w-4 shrink-0 text-[var(--muted-foreground)] opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </Link>
         ))}
       </div>
 
-      {/* Bottom grid: Getting Started + Activity */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        {/* Getting Started */}
-        <div className="lg:col-span-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-sm)]">
-          <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
-                <CheckCircle2 className="h-4 w-4 text-white" />
+      {/* Quick actions - mobile only */}
+      <div className="grid grid-cols-2 gap-2 sm:hidden">
+        <Link href="/members/new" className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-sm font-medium transition-colors hover:bg-[var(--accent)]">
+          <UserPlus className="h-4 w-4 text-indigo-500" />
+          Add Member
+        </Link>
+        <Link href="/email/new" className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-sm font-medium transition-colors hover:bg-[var(--accent)]">
+          <Mail className="h-4 w-4 text-purple-500" />
+          Send Email
+        </Link>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main column */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* Onboarding */}
+          {showOnboarding && (
+            <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-sm)]">
+              <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
+                    <Zap className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold">Get Started</h2>
+                    <p className="text-xs text-[var(--muted-foreground)]">{completedSteps} of 5 complete</p>
+                  </div>
+                </div>
+                {/* Progress bar */}
+                <div className="flex items-center gap-3">
+                  <div className="hidden h-2 w-32 overflow-hidden rounded-full bg-[var(--muted)] sm:block">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500"
+                      style={{ width: `${(completedSteps / 5) * 100}%` }}
+                    />
+                  </div>
+                  <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-semibold text-[var(--accent-foreground)]">
+                    {completedSteps}/5
+                  </span>
+                </div>
               </div>
-              <div>
-                <h2 className="text-base font-semibold">Getting Started</h2>
-                <p className="text-xs text-[var(--muted-foreground)]">Complete these steps to set up your organization</p>
+              <div className="divide-y divide-[var(--border)]">
+                {steps.map((step, i) => (
+                  <Link key={i} href={step.href} className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[var(--accent)]/50">
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105 ${step.done ? "bg-emerald-100" : "bg-[var(--muted)]"}`}>
+                      {step.done
+                        ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        : <step.icon className="h-4 w-4 text-[var(--muted-foreground)]" />
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${step.done ? "line-through text-[var(--muted-foreground)]" : ""}`}>
+                        {step.label}
+                      </p>
+                      <p className="text-xs text-[var(--muted-foreground)]">{step.description}</p>
+                    </div>
+                    {!step.done && (
+                      <ArrowRight className="h-4 w-4 shrink-0 text-[var(--muted-foreground)] opacity-0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100" />
+                    )}
+                  </Link>
+                ))}
               </div>
             </div>
-            <span className="rounded-full bg-[var(--accent)] px-2.5 py-1 text-xs font-semibold text-[var(--accent-foreground)]">
-              0/5
-            </span>
-          </div>
-          <div className="divide-y divide-[var(--border)]">
-            {steps.map((step, i) => (
+          )}
+
+          {/* Quick links grid */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label: "Import CSV", href: "/members/import", icon: Upload, color: "text-blue-600", bg: "bg-blue-50" },
+              { label: "Analytics", href: "/analytics", icon: BarChart3, color: "text-emerald-600", bg: "bg-emerald-50" },
+              { label: "Site Builder", href: "/settings/template", icon: Globe, color: "text-rose-600", bg: "bg-rose-50" },
+              { label: "Team", href: "/settings/team", icon: Users, color: "text-violet-600", bg: "bg-violet-50" },
+            ].map((action) => (
               <Link
-                key={i}
-                href={step.href}
-                className="group flex items-center gap-4 px-6 py-4 transition-all duration-200 hover:bg-[var(--accent)]/50"
+                key={action.label}
+                href={action.href}
+                className="group flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] p-3.5 transition-all duration-200 hover:border-[var(--ring)]/30 hover:shadow-[var(--shadow-sm)] active:scale-[0.98]"
               >
-                <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${step.gradient} shadow-md transition-transform duration-300 group-hover:scale-110`}
-                >
-                  <step.icon className="h-[18px] w-[18px] text-white" />
+                <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${action.bg} transition-transform duration-200 group-hover:scale-105`}>
+                  <action.icon className={`h-4 w-4 ${action.color}`} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold">{step.label}</p>
-                  <p className="text-xs text-[var(--muted-foreground)]">{step.description}</p>
-                </div>
-                <ArrowRight className="h-4 w-4 shrink-0 text-[var(--muted-foreground)] opacity-0 transition-all duration-200 group-hover:translate-x-1 group-hover:opacity-100" />
+                <span className="text-sm font-medium">{action.label}</span>
               </Link>
             ))}
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="lg:col-span-2 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-sm)]">
-          <div className="flex items-center gap-3 border-b border-[var(--border)] px-6 py-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--muted)]">
+        {/* Activity sidebar */}
+        <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-sm)]">
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3.5">
+            <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 text-[var(--muted-foreground)]" />
+              <h2 className="text-sm font-semibold">Recent Activity</h2>
             </div>
-            <h2 className="text-base font-semibold">Recent Activity</h2>
+            {recentActivity.length > 0 && (
+              <Link href="/analytics" className="text-xs font-medium text-[var(--primary)] hover:underline underline-offset-2 transition-colors">
+                View all
+              </Link>
+            )}
           </div>
-          <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
-            <div className="relative mb-5">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10">
-                <Sparkles className="h-7 w-7 text-indigo-400" />
+          {recentActivity.length === 0 ? (
+            <div className="flex flex-col items-center justify-center px-5 py-10 text-center">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--muted)]">
+                <Sparkles className="h-5 w-5 text-[var(--muted-foreground)]" />
               </div>
-              <div className="absolute -inset-2 rounded-3xl bg-indigo-500/5 blur-xl" />
+              <p className="text-sm font-medium">No activity yet</p>
+              <p className="mt-1 text-xs text-[var(--muted-foreground)] max-w-[200px]">
+                Activity will appear here as you manage members.
+              </p>
+              <Link href="/members/import" className="mt-4">
+                <Button size="sm">
+                  <Plus className="h-3.5 w-3.5" />
+                  Import Members
+                </Button>
+              </Link>
             </div>
-            <p className="font-semibold">No activity yet</p>
-            <p className="mt-1.5 text-sm text-[var(--muted-foreground)] max-w-[220px]">
-              Activity will appear here once you start managing members.
-            </p>
-            <Link
-              href="/members/import"
-              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-medium text-[var(--primary-foreground)] shadow-[0_2px_12px_rgba(99,102,241,0.3)] transition-all duration-200 hover:shadow-[0_4px_20px_rgba(99,102,241,0.4)] hover:brightness-110 active:scale-[0.98]"
-            >
-              Import Members
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
+          ) : (
+            <div className="divide-y divide-[var(--border)]">
+              {recentActivity.map((item: ActivityItem) => {
+                const meta = ACTIVITY_META[item.type];
+                const href = meta?.href?.(item);
+                const inner = (
+                  <div className={`flex items-start gap-3 px-5 py-3 transition-colors ${href ? "hover:bg-[var(--accent)]/50" : ""}`}>
+                    <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${meta?.bg || "bg-[var(--muted)]"}`}>
+                      <Clock className={`h-3.5 w-3.5 ${meta?.color || "text-[var(--muted-foreground)]"}`} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm leading-snug">{item.description}</p>
+                      <p className="mt-0.5 text-[11px] text-[var(--muted-foreground)]">{timeAgo(item.createdAt)}</p>
+                    </div>
+                  </div>
+                );
+                return href ? (
+                  <Link key={item.id} href={href} className="group block">{inner}</Link>
+                ) : (
+                  <div key={item.id}>{inner}</div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }

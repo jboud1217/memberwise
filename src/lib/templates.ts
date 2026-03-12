@@ -16,7 +16,29 @@ export type SectionType =
   | "events-list"
   | "directory-grid"
   | "faq"
-  | "gallery";
+  | "gallery"
+  // Content
+  | "rich-text"
+  | "image-banner"
+  | "video-embed"
+  | "custom-html"
+  // Layout
+  | "cards"
+  | "pricing"
+  | "team"
+  | "logo-cloud"
+  | "timeline"
+  // Widgets
+  | "social-feed"
+  | "google-reviews"
+  | "google-map"
+  | "calendar-widget"
+  | "newsletter-signup"
+  | "countdown"
+  | "social-links"
+  // Utility
+  | "spacer"
+  | "divider";
 
 export type PortalNavStyle = "top-bar" | "sidebar" | "minimal-top";
 

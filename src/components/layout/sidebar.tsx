@@ -15,36 +15,82 @@ import {
   X,
   ContactRound,
   Tag,
+  ChevronRight,
+  Command,
+  Search,
+  Globe,
+  ExternalLink,
+  PenLine,
 } from "lucide-react";
 import { useState } from "react";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Members", href: "/members", icon: Users },
-  { name: "Contacts", href: "/contacts", icon: ContactRound },
-  { name: "Tiers", href: "/tiers", icon: Tag },
-  { name: "Billing", href: "/billing", icon: CreditCard },
-  { name: "Email", href: "/email", icon: Mail },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, shortcut: "D" },
+  { name: "Members", href: "/members", icon: Users, shortcut: "M" },
+  { name: "Contacts", href: "/contacts", icon: ContactRound, shortcut: "C" },
+  { name: "Tiers", href: "/tiers", icon: Tag, shortcut: "T" },
+  { name: "Billing", href: "/billing", icon: CreditCard, shortcut: "B" },
+  { name: "Email", href: "/email", icon: Mail, shortcut: "E" },
+  { name: "Analytics", href: "/analytics", icon: BarChart3, shortcut: "A" },
 ];
 
 const bottomNavigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar() {
+function getBreadcrumb(pathname: string): string | null {
+  if (pathname.startsWith("/members/") && pathname !== "/members/import" && pathname !== "/members/new") {
+    return "Member Detail";
+  }
+  if (pathname === "/members/new") return "Add Member";
+  if (pathname === "/members/import") return "Import";
+  if (pathname === "/email/new") return "New Campaign";
+  if (pathname.startsWith("/settings/")) {
+    const segment = pathname.split("/")[2];
+    return segment ? segment.charAt(0).toUpperCase() + segment.slice(1) : null;
+  }
+  return null;
+}
+
+export function Sidebar({ siteUrl = "/" }: { siteUrl?: string }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const breadcrumb = getBreadcrumb(pathname);
+
+  const activeSection = navigation.find(
+    (item) => pathname === item.href || pathname.startsWith(item.href + "/")
+  );
 
   return (
     <>
-      {/* Mobile hamburger */}
-      <button
-        className="fixed top-4 left-4 z-50 rounded-xl bg-[var(--card)] p-2.5 shadow-[var(--shadow-md)] lg:hidden transition-transform active:scale-95"
-        onClick={() => setMobileOpen(!mobileOpen)}
-      >
-        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-      </button>
+      {/* Mobile top bar */}
+      <div className="fixed inset-x-0 top-0 z-50 flex h-14 items-center gap-3 border-b border-[var(--border)] bg-[var(--card)]/90 px-4 backdrop-blur-xl lg:hidden">
+        <button
+          className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-[var(--accent)] transition-colors"
+          onClick={() => setMobileOpen(!mobileOpen)}
+        >
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+        <div className="flex items-center gap-2 text-sm">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-indigo-500 to-purple-600">
+            <span className="text-[10px] font-bold text-white">M</span>
+          </div>
+          {activeSection && (
+            <>
+              <span className="font-medium">{activeSection.name}</span>
+              {breadcrumb && (
+                <>
+                  <ChevronRight className="h-3 w-3 text-[var(--muted-foreground)]" />
+                  <span className="text-[var(--muted-foreground)]">{breadcrumb}</span>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile spacer */}
+      <div className="h-14 lg:hidden" />
 
       {/* Mobile overlay */}
       {mobileOpen && (
@@ -57,23 +103,73 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-[var(--border)] bg-[var(--card)]/80 backdrop-blur-xl transition-transform duration-300 lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-[var(--border)] bg-[var(--card)] transition-transform duration-300 lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-[var(--border)] px-6">
+        <div className="flex h-16 items-center gap-3 border-b border-[var(--border)] px-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-[0_2px_8px_rgba(99,102,241,0.3)]">
             <span className="text-sm font-bold text-white">M</span>
           </div>
-          <div>
-            <span className="text-base font-semibold tracking-tight">MemberWise</span>
-            <span className="ml-1.5 rounded-md bg-[var(--accent)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent-foreground)]">Beta</span>
+          <div className="flex flex-col">
+            <span className="text-[15px] font-semibold tracking-tight leading-tight">MemberWise</span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Membership Platform</span>
+          </div>
+        </div>
+
+        {/* Search hint */}
+        <div className="px-3 pt-4 pb-1">
+          <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--muted)]/50 px-3 py-2 text-xs text-[var(--muted-foreground)] transition-colors hover:border-[var(--ring)]/30 hover:bg-[var(--accent)]">
+            <Search className="h-3.5 w-3.5" />
+            <span className="flex-1">Search...</span>
+            <kbd className="hidden items-center gap-0.5 rounded border border-[var(--border)] bg-[var(--background)] px-1.5 py-0.5 text-[10px] font-medium sm:inline-flex">
+              <Command className="h-2.5 w-2.5" />K
+            </kbd>
           </div>
         </div>
 
         {/* Nav links */}
-        <nav className="flex-1 space-y-0.5 px-3 py-4">
+        <nav className="flex-1 space-y-0.5 px-3 py-3 overflow-y-auto">
+          {/* Website section */}
+          <p className="mb-2 mt-4 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">
+            Website
+          </p>
+          <Link
+            href="/settings/template"
+            onClick={() => setMobileOpen(false)}
+            className={cn(
+              "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
+              pathname === "/settings/template"
+                ? "bg-[var(--primary)] text-white shadow-[0_1px_3px_rgba(99,102,241,0.3)]"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
+            )}
+          >
+            <PenLine className={cn("h-4 w-4 shrink-0", pathname !== "/settings/template" && "transition-transform duration-150 group-hover:scale-110")} />
+            <span className="flex-1">Site Builder</span>
+            <kbd className={cn(
+              "hidden text-[10px] font-mono rounded px-1 py-0.5 lg:inline-block transition-colors",
+              pathname === "/settings/template"
+                ? "bg-white/20 text-white/70"
+                : "text-[var(--muted-foreground)]/50 group-hover:text-[var(--muted-foreground)]"
+            )}>
+              S
+            </kbd>
+          </Link>
+          <a
+            href={siteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--muted-foreground)] transition-all duration-150 hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
+          >
+            <Globe className="h-4 w-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+            <span className="flex-1">View Website</span>
+            <ExternalLink className="h-3 w-3 opacity-40 group-hover:opacity-70 transition-opacity" />
+          </a>
+
+          <p className="mb-2 mt-4 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">
+            Manage
+          </p>
           {navigation.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
@@ -82,24 +178,29 @@ export function Sidebar() {
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
                   isActive
-                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-[0_2px_12px_rgba(99,102,241,0.35)]"
-                    : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+                    ? "bg-[var(--primary)] text-white shadow-[0_1px_3px_rgba(99,102,241,0.3)]"
+                    : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
                 )}
               >
-                <item.icon className={cn("h-[18px] w-[18px] transition-transform duration-200", !isActive && "group-hover:scale-110")} />
-                {item.name}
-                {isActive && (
-                  <div className="absolute right-3 h-1.5 w-1.5 rounded-full bg-white/80" />
-                )}
+                <item.icon className={cn("h-4 w-4 shrink-0", !isActive && "transition-transform duration-150 group-hover:scale-110")} />
+                <span className="flex-1">{item.name}</span>
+                <kbd className={cn(
+                  "hidden text-[10px] font-mono rounded px-1 py-0.5 lg:inline-block transition-colors",
+                  isActive
+                    ? "bg-white/20 text-white/70"
+                    : "text-[var(--muted-foreground)]/50 group-hover:text-[var(--muted-foreground)]"
+                )}>
+                  {item.shortcut}
+                </kbd>
               </Link>
             );
           })}
         </nav>
 
         {/* Bottom nav */}
-        <div className="border-t border-[var(--border)] px-3 py-4 space-y-0.5">
+        <div className="border-t border-[var(--border)] px-3 py-3 space-y-0.5">
           {bottomNavigation.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
@@ -108,13 +209,13 @@ export function Sidebar() {
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
                   isActive
-                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-[0_2px_12px_rgba(99,102,241,0.35)]"
-                    : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+                    ? "bg-[var(--primary)] text-white shadow-[0_1px_3px_rgba(99,102,241,0.3)]"
+                    : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
                 )}
               >
-                <item.icon className="h-[18px] w-[18px]" />
+                <item.icon className="h-4 w-4" />
                 {item.name}
               </Link>
             );
@@ -122,9 +223,9 @@ export function Sidebar() {
           <form action="/api/auth/signout" method="POST">
             <button
               type="submit"
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--muted-foreground)] transition-all duration-200 hover:bg-red-500/10 hover:text-red-500"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--muted-foreground)] transition-all duration-150 hover:bg-red-500/10 hover:text-red-500"
             >
-              <LogOut className="h-[18px] w-[18px]" />
+              <LogOut className="h-4 w-4" />
               Sign Out
             </button>
           </form>

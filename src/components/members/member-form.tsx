@@ -143,6 +143,22 @@ export function MemberForm({ defaultValues, tiers, onSubmit, submitLabel = "Save
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-lg">Communication Preferences</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <label className="flex items-center gap-3 text-sm">
+            <input type="checkbox" {...register("doNotEmail")} className="cursor-pointer" />
+            Do not send emails to this member
+          </label>
+          <label className="flex items-center gap-3 text-sm">
+            <input type="checkbox" {...register("doNotMail")} className="cursor-pointer" />
+            Do not send physical mail to this member
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-lg">Notes</CardTitle>
         </CardHeader>
         <CardContent>

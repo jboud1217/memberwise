@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useCallback } from "react";
+import { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -13,24 +13,35 @@ export function MembersFilter() {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const debouncedSearch = useDebounce(search);
+  const isFirstRender = useRef(true);
 
-  const updateFilters = useCallback(
-    (key: string, value: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (value) {
-        params.set(key, value);
-      } else {
-        params.delete(key);
-      }
-      params.delete("page");
-      router.push(`/members?${params.toString()}`);
-    },
-    [router, searchParams]
-  );
+  function updateFilters(key: string, value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+    params.delete("page");
+    router.push(`/members?${params.toString()}`);
+  }
 
   useEffect(() => {
-    updateFilters("search", debouncedSearch);
-  }, [debouncedSearch, updateFilters]);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const params = new URLSearchParams(searchParams.toString());
+    if (debouncedSearch) {
+      params.set("search", debouncedSearch);
+    } else {
+      params.delete("search");
+    }
+    params.delete("page");
+    router.push(`/members?${params.toString()}`);
+    // Only re-run when the debounced search text actually changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row">

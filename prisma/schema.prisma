@@ -110,7 +110,8 @@ model Organization {
   layoutTemplate       String   @default("starter")
   pageOverrides        Json?
 
-  // S3-backed site document
+  // Site document (stored in DB as JSON, or optionally on S3)
+  siteDocument          Json?
   siteDocumentKey       String?
   siteDocumentVersion   Int      @default(0)
   siteDocumentUpdatedAt DateTime?
@@ -135,6 +136,7 @@ model Organization {
   importJobs     ImportJob[]
   teamInvites    TeamInvite[]
   customFields   CustomField[]
+  activityLogs   ActivityLog[]
 }
 
 // ─── Auth Models ────────────────────────────────────────
@@ -248,6 +250,10 @@ model Member {
   contacts         Contact[]
   payments         Payment[]
   invoices         Invoice[]
+  // Email preferences
+  doNotEmail Boolean @default(false)
+  doNotMail  Boolean @default(false)
+
   customFieldValues CustomFieldValue[]
 
   createdAt DateTime @default(now())
@@ -449,6 +455,27 @@ model CustomFieldValue {
   @@unique([fieldId, contactId])
   @@index([memberId])
   @@index([contactId])
+}
+
+// ─── Activity Log ─────────────────────────────────────
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  type        String   // member_created, member_updated, contact_created, payment_recorded, import_completed, campaign_sent, etc.
+  description String
+  metadata    Json?    // Extra context (e.g. changed fields, amounts)
+
+  memberId String?
+  contactId String?
+  userId   String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([organizationId, createdAt])
 }
 
 // ─── Import ────────────────────────────────────────────

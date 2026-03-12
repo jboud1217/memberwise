@@ -4,16 +4,17 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
-  getSiteDocument,
-  putSiteDocument,
-  snapshotSiteDocument,
   getPresignedUploadUrl as s3PresignedUpload,
-  orgSiteKey,
 } from "@/lib/s3";
+import {
+  getOrgSiteDocumentCached,
+  saveSiteDocumentForOrg,
+  snapshotSiteDocumentForOrg,
+} from "@/lib/site-document";
 import { getTemplateById } from "@/lib/templates";
 import { getThemeById } from "@/lib/themes";
-import type { SiteDocument, SectionDocument, SectionStyle, PageDocument } from "@/lib/types/site-document";
-import { DEFAULT_HEADER, DEFAULT_FOOTER, DEFAULT_SECTION_STYLE, createEmptySiteDocument } from "@/lib/types/site-document";
+import type { SiteDocument, SectionDocument, PageDocument } from "@/lib/types/site-document";
+import { DEFAULT_SECTION_STYLE, createEmptySiteDocument } from "@/lib/types/site-document";
 
 function revalidateSite() {
   revalidatePath("/");
@@ -138,22 +139,10 @@ export async function selectTemplate(templateId: string, themeId?: string) {
   }));
 
   // Snapshot existing doc if there is one
-  await snapshotSiteDocument(orgId);
+  await snapshotSiteDocumentForOrg(orgId);
 
-  // Upload to S3
-  await putSiteDocument(orgId, doc);
-
-  // Update DB
-  await prisma.organization.update({
-    where: { id: orgId },
-    data: {
-      layoutTemplate: templateId,
-      theme: effectiveThemeId,
-      siteDocumentKey: orgSiteKey(orgId),
-      siteDocumentVersion: { increment: 1 },
-      siteDocumentUpdatedAt: new Date(),
-    },
-  });
+  // Save to DB (and S3 if configured)
+  await saveSiteDocumentForOrg(orgId, doc);
 
   revalidateSite();
   return { success: true };
@@ -161,62 +150,23 @@ export async function selectTemplate(templateId: string, themeId?: string) {
 
 /**
  * Get the full SiteDocument for the current org.
- * Falls back to building from DB (template + pageOverrides) if no S3 doc exists.
  */
 export async function getOrgSiteDocument(): Promise<SiteDocument | null> {
   const session = await auth();
   if (!session?.user?.organizationId) return null;
-
-  const orgId = session.user.organizationId;
-  const org = await prisma.organization.findUnique({
-    where: { id: orgId },
-    select: {
-      name: true,
-      siteDocumentKey: true,
-      layoutTemplate: true,
-      theme: true,
-      pageOverrides: true,
-      logo: true,
-    },
-  });
-  if (!org) return null;
-
-  // Try S3 first
-  if (org.siteDocumentKey) {
-    const doc = await getSiteDocument(orgId);
-    if (doc) return doc;
-  }
-
-  // Fallback: build from DB (legacy path)
-  return buildSiteDocumentFromDB(org);
+  return getOrgSiteDocumentCached(session.user.organizationId);
 }
 
 /**
- * Save the entire SiteDocument to S3.
+ * Save the entire SiteDocument.
  */
 export async function saveSiteDocument(doc: SiteDocument) {
   const session = await auth();
   if (!session?.user?.organizationId) throw new Error("Not authenticated");
 
   const orgId = session.user.organizationId;
-
-  // Snapshot before saving
-  await snapshotSiteDocument(orgId);
-
-  // Save to S3
-  await putSiteDocument(orgId, doc);
-
-  // Also sync key fields back to DB for quick access
-  await prisma.organization.update({
-    where: { id: orgId },
-    data: {
-      siteDocumentKey: orgSiteKey(orgId),
-      siteDocumentVersion: { increment: 1 },
-      siteDocumentUpdatedAt: new Date(),
-      theme: doc.global.theme.baseThemeId,
-      layoutTemplate: doc.sourceTemplateId,
-    },
-  });
+  await snapshotSiteDocumentForOrg(orgId);
+  await saveSiteDocumentForOrg(orgId, doc);
 
   revalidateSite();
   return { success: true };
@@ -230,12 +180,9 @@ export async function saveSiteDocumentPage(pageSlug: string, page: PageDocument)
   if (!session?.user?.organizationId) throw new Error("Not authenticated");
 
   const orgId = session.user.organizationId;
-
-  // Get current doc
-  const doc = await getSiteDocument(orgId);
+  const doc = await getOrgSiteDocumentCached(orgId);
   if (!doc) throw new Error("No site document found. Select a template first.");
 
-  // Replace the page
   const pageIndex = doc.pages.findIndex((p) => p.slug === pageSlug);
   if (pageIndex >= 0) {
     doc.pages[pageIndex] = page;
@@ -243,16 +190,7 @@ export async function saveSiteDocumentPage(pageSlug: string, page: PageDocument)
     doc.pages.push(page);
   }
 
-  await putSiteDocument(orgId, doc);
-
-  await prisma.organization.update({
-    where: { id: orgId },
-    data: {
-      siteDocumentVersion: { increment: 1 },
-      siteDocumentUpdatedAt: new Date(),
-    },
-  });
-
+  await saveSiteDocumentForOrg(orgId, doc);
   revalidateSite();
   return { success: true };
 }
@@ -265,7 +203,7 @@ export async function createPage(title: string, slug: string) {
   if (!session?.user?.organizationId) throw new Error("Not authenticated");
 
   const orgId = session.user.organizationId;
-  const doc = await getSiteDocument(orgId);
+  const doc = await getOrgSiteDocumentCached(orgId);
   if (!doc) throw new Error("No site document found. Select a template first.");
 
   if (doc.pages.some((p) => p.slug === slug)) {
@@ -287,16 +225,7 @@ export async function createPage(title: string, slug: string) {
   };
 
   doc.pages.push(newPage);
-  await putSiteDocument(orgId, doc);
-
-  await prisma.organization.update({
-    where: { id: orgId },
-    data: {
-      siteDocumentVersion: { increment: 1 },
-      siteDocumentUpdatedAt: new Date(),
-    },
-  });
-
+  await saveSiteDocumentForOrg(orgId, doc);
   revalidateSite();
   return { success: true, page: newPage };
 }
@@ -309,7 +238,7 @@ export async function renamePage(oldSlug: string, newTitle: string, newSlug: str
   if (!session?.user?.organizationId) throw new Error("Not authenticated");
 
   const orgId = session.user.organizationId;
-  const doc = await getSiteDocument(orgId);
+  const doc = await getOrgSiteDocumentCached(orgId);
   if (!doc) throw new Error("No site document found.");
 
   const page = doc.pages.find((p) => p.slug === oldSlug);
@@ -321,16 +250,7 @@ export async function renamePage(oldSlug: string, newTitle: string, newSlug: str
 
   page.title = newTitle;
   page.slug = newSlug;
-  await putSiteDocument(orgId, doc);
-
-  await prisma.organization.update({
-    where: { id: orgId },
-    data: {
-      siteDocumentVersion: { increment: 1 },
-      siteDocumentUpdatedAt: new Date(),
-    },
-  });
-
+  await saveSiteDocumentForOrg(orgId, doc);
   revalidateSite();
   return { success: true };
 }
@@ -343,20 +263,11 @@ export async function deletePage(slug: string) {
   if (!session?.user?.organizationId) throw new Error("Not authenticated");
 
   const orgId = session.user.organizationId;
-  const doc = await getSiteDocument(orgId);
+  const doc = await getOrgSiteDocumentCached(orgId);
   if (!doc) throw new Error("No site document found.");
 
   doc.pages = doc.pages.filter((p) => p.slug !== slug);
-  await putSiteDocument(orgId, doc);
-
-  await prisma.organization.update({
-    where: { id: orgId },
-    data: {
-      siteDocumentVersion: { increment: 1 },
-      siteDocumentUpdatedAt: new Date(),
-    },
-  });
-
+  await saveSiteDocumentForOrg(orgId, doc);
   revalidateSite();
   return { success: true };
 }
@@ -369,21 +280,11 @@ export async function saveSiteGlobals(globals: Partial<SiteDocument["global"]>) 
   if (!session?.user?.organizationId) throw new Error("Not authenticated");
 
   const orgId = session.user.organizationId;
-  const doc = await getSiteDocument(orgId);
+  const doc = await getOrgSiteDocumentCached(orgId);
   if (!doc) throw new Error("No site document found. Select a template first.");
 
   doc.global = { ...doc.global, ...globals };
-  await putSiteDocument(orgId, doc);
-
-  await prisma.organization.update({
-    where: { id: orgId },
-    data: {
-      siteDocumentVersion: { increment: 1 },
-      siteDocumentUpdatedAt: new Date(),
-      ...(globals.theme ? { theme: globals.theme.baseThemeId } : {}),
-    },
-  });
-
+  await saveSiteDocumentForOrg(orgId, doc);
   revalidateSite();
   return { success: true };
 }
@@ -410,14 +311,8 @@ export async function revertSiteToSnapshot() {
   const doc = await revertToSnapshot(orgId);
   if (!doc) throw new Error("No snapshot found");
 
-  await prisma.organization.update({
-    where: { id: orgId },
-    data: {
-      siteDocumentVersion: { increment: 1 },
-      siteDocumentUpdatedAt: new Date(),
-    },
-  });
-
+  // Also save reverted doc to DB
+  await saveSiteDocumentForOrg(orgId, doc);
   revalidateSite();
   return { success: true };
 }
@@ -443,68 +338,4 @@ export async function deleteAsset(filename: string) {
   const { deleteOrgAsset } = await import("@/lib/s3");
   await deleteOrgAsset(session.user.organizationId, filename);
   return { success: true };
-}
-
-// ─── Helpers ──────────────────────────────────────────────
-
-function buildSiteDocumentFromDB(org: {
-  name: string;
-  layoutTemplate: string | null;
-  theme: string | null;
-  pageOverrides: unknown;
-  logo: string | null;
-}): SiteDocument {
-  const templateId = org.layoutTemplate || "starter";
-  const themeId = org.theme || "modern-minimal";
-  const template = getTemplateById(templateId);
-  const theme = getThemeById(themeId);
-  const overrides = (org.pageOverrides as Record<string, Record<string, Record<string, unknown>>>) || {};
-
-  const doc = createEmptySiteDocument(templateId, org.name, themeId, theme?.variables || {});
-  doc.global.logo = org.logo || undefined;
-  doc.global.portalNavStyle = template.portalNavStyle;
-  doc.global.header.navLinks = template.pages.map((p) => ({
-    label: p.title,
-    href: p.slug === "landing" ? "/" : `/${p.slug}`,
-  }));
-
-  doc.pages = template.pages.map((page): PageDocument => {
-    const pageOverrides = overrides[page.slug] || {};
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { __layout__, ...sectionOverrides } = pageOverrides as Record<string, Record<string, unknown>>;
-    const layout = __layout__ as unknown as { id: string; type: string }[] | undefined;
-
-    const sections = layout
-      ? layout.map((entry): SectionDocument => {
-          const templateSection = page.sections.find((s) => s.id === entry.id);
-          const mergedProps = {
-            ...(templateSection?.props || {}),
-            ...(sectionOverrides[entry.id] || {}),
-          };
-          return {
-            id: entry.id,
-            type: entry.type as SectionDocument["type"],
-            props: mergedProps,
-            style: {},
-            visible: true,
-          };
-        })
-      : page.sections.map((section): SectionDocument => {
-          const mergedProps = {
-            ...section.props,
-            ...(sectionOverrides[section.id] || {}),
-          };
-          return {
-            id: section.id,
-            type: section.type as SectionDocument["type"],
-            props: mergedProps,
-            style: {},
-            visible: true,
-          };
-        });
-
-    return { slug: page.slug, title: page.title, sections };
-  });
-
-  return doc;
 }

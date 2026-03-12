@@ -1,6 +1,5 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { getSiteDocument as s3GetSiteDocument } from "@/lib/s3";
 import { getTemplateById } from "@/lib/templates";
 import { getThemeById } from "@/lib/themes";
 import type { SiteDocument, SectionDocument, PageDocument } from "@/lib/types/site-document";
@@ -8,14 +7,17 @@ import { createEmptySiteDocument } from "@/lib/types/site-document";
 
 /**
  * Get the SiteDocument for a given org. Uses React `cache()` for
- * request-level deduplication. Tries S3 first, falls back to building
- * from DB columns (legacy path).
+ * request-level deduplication. Reads from:
+ *   1. DB `siteDocument` JSON column (primary)
+ *   2. S3 via siteDocumentKey (if configured)
+ *   3. Build from template + pageOverrides (legacy fallback)
  */
 export const getOrgSiteDocumentCached = cache(async (orgId: string): Promise<SiteDocument | null> => {
   const org = await prisma.organization.findUnique({
     where: { id: orgId },
     select: {
       name: true,
+      siteDocument: true,
       siteDocumentKey: true,
       layoutTemplate: true,
       theme: true,
@@ -25,9 +27,15 @@ export const getOrgSiteDocumentCached = cache(async (orgId: string): Promise<Sit
   });
   if (!org) return null;
 
-  // Try S3 first
-  if (org.siteDocumentKey) {
+  // 1. Try DB-stored document first
+  if (org.siteDocument) {
+    return org.siteDocument as unknown as SiteDocument;
+  }
+
+  // 2. Try S3 if key exists and AWS is configured
+  if (org.siteDocumentKey && process.env.AWS_ACCESS_KEY_ID) {
     try {
+      const { getSiteDocument: s3GetSiteDocument } = await import("@/lib/s3");
       const doc = await s3GetSiteDocument(orgId);
       if (doc) return doc;
     } catch {
@@ -35,9 +43,65 @@ export const getOrgSiteDocumentCached = cache(async (orgId: string): Promise<Sit
     }
   }
 
-  // Fallback: build from DB (legacy)
+  // 3. Fallback: build from template + pageOverrides
   return buildFromDB(org);
 });
+
+/**
+ * Save SiteDocument. Writes to DB JSON column (always), and to S3 (if configured).
+ */
+export async function saveSiteDocumentForOrg(orgId: string, doc: SiteDocument): Promise<void> {
+  doc.lastModified = new Date().toISOString();
+
+  // Always save to DB
+  await prisma.organization.update({
+    where: { id: orgId },
+    data: {
+      siteDocument: JSON.parse(JSON.stringify(doc)),
+      siteDocumentVersion: { increment: 1 },
+      siteDocumentUpdatedAt: new Date(),
+      theme: doc.global.theme.baseThemeId,
+      layoutTemplate: doc.sourceTemplateId,
+    },
+  });
+
+  // Also save to S3 if configured
+  if (process.env.AWS_ACCESS_KEY_ID) {
+    try {
+      const { putSiteDocument, orgSiteKey } = await import("@/lib/s3");
+      await putSiteDocument(orgId, doc);
+      // Update the S3 key reference
+      await prisma.organization.update({
+        where: { id: orgId },
+        data: { siteDocumentKey: orgSiteKey(orgId) },
+      });
+    } catch {
+      // S3 save failed but DB save succeeded — that's fine
+    }
+  }
+}
+
+/**
+ * Snapshot the current document before overwriting.
+ */
+export async function snapshotSiteDocumentForOrg(orgId: string): Promise<void> {
+  // Read current document
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { siteDocument: true },
+  });
+  if (!org?.siteDocument) return;
+
+  // Store snapshot in a separate JSON column or just rely on S3
+  if (process.env.AWS_ACCESS_KEY_ID) {
+    try {
+      const { snapshotSiteDocument } = await import("@/lib/s3");
+      await snapshotSiteDocument(orgId);
+    } catch {
+      // Snapshot failed — non-critical
+    }
+  }
+}
 
 function buildFromDB(org: {
   name: string;

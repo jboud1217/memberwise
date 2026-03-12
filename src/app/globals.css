@@ -109,6 +109,26 @@ button:disabled,
   cursor: not-allowed;
 }
 
+/* ─── Focus visible ─────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Kbd styling ───────────────────────────────── */
+
+kbd {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ─── Table row clickable hint ──────────────────── */
+
+tr[class*="cursor-pointer"]:active {
+  background: var(--accent);
+}
+
 /* ─── Animations ─────────────────────────────────── */
 
 @keyframes fadeInUp {
@@ -137,10 +157,16 @@ button:disabled,
   100% { background-position: 0% 50%; }
 }
 
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 .animate-fade-in-up { animation: fadeInUp 0.4s ease-out both; }
 .animate-fade-in { animation: fadeIn 0.3s ease-out both; }
 .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
 .animate-gradient { animation: gradient-shift 6s ease infinite; background-size: 200% 200%; }
+.animate-slide-in-right { animation: slideInRight 0.3s ease-out both; }
 
 .animate-shimmer {
   background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
@@ -212,4 +238,16 @@ button:disabled,
 ::selection {
   background: rgba(99,102,241,0.2);
   color: var(--foreground);
+}
+
+/* ─── Smooth transitions everywhere ─────────────── */
+
+* {
+  transition-property: color, background-color, border-color, box-shadow, opacity;
+  transition-timing-function: ease;
+  transition-duration: 0s;
+}
+
+a, button, [role="button"], input, select, textarea, tr, td, th, .transition-all, .transition-colors {
+  transition-duration: 150ms;
 }

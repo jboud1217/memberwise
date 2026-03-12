@@ -3,7 +3,6 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema, type RegisterInput } from "@/lib/validators/auth";
-import { signIn } from "@/auth";
 
 export async function register(data: RegisterInput) {
   const validated = registerSchema.safeParse(data);
@@ -53,14 +52,6 @@ export async function register(data: RegisterInput) {
         },
       },
     },
-  });
-
-  // Auto sign-in
-  await signIn("credentials", {
-    email,
-    password,
-    organizationSlug: slug,
-    redirect: false,
   });
 
   return { success: true, slug };

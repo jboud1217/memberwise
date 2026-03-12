@@ -17,7 +17,9 @@ export interface OnboardingInput {
 
 export async function saveOnboardingData(data: OnboardingInput) {
   const session = await auth();
-  if (!session?.user?.organizationId) throw new Error("Not authenticated");
+  if (!session?.user?.organizationId) {
+    return { success: false, error: "session_expired" as const };
+  }
 
   await prisma.organization.update({
     where: { id: session.user.organizationId },

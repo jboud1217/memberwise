@@ -9,14 +9,18 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user;
       const path = nextUrl.pathname;
 
-      // Subdomain or ?site= requests are public site pages — always allow
+      // Subdomain requests are always public site pages — allow through
       const host = headers.get("host") || "";
       const hostname = host.split(":")[0];
       const isSubdomain =
         (hostname.endsWith(".localhost") && hostname !== "localhost") ||
         (hostname !== "localhost" && hostname !== "127.0.0.1" && hostname.split(".").length > 2);
+      if (isSubdomain) return true;
+
+      // ?site= param is only for public site routes (not dashboard/auth/settings)
+      const protectedPrefixes = ["/dashboard", "/members", "/contacts", "/tiers", "/billing", "/email", "/analytics", "/settings", "/portal", "/onboarding", "/api"];
       const hasSiteParam = nextUrl.searchParams.has("site");
-      if (isSubdomain || hasSiteParam) return true;
+      if (hasSiteParam && !protectedPrefixes.some((p) => path.startsWith(p))) return true;
 
       // Public routes
       const publicRoutes = ["/", "/pricing", "/features", "/about", "/contact", "/events"];
