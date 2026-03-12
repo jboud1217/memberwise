@@ -13,6 +13,11 @@ function getSubdomainSlug(host: string): string | null {
   if (hostname.endsWith(".localhost")) {
     return hostname.replace(".localhost", "");
   }
+  // Don't treat the app's own domain as a subdomain
+  const appDomain = process.env.NEXT_PUBLIC_APP_URL
+    ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname
+    : null;
+  if (appDomain && hostname === appDomain) return null;
   const parts = hostname.split(".");
   if (parts.length > 2) return parts[0];
   return null;
