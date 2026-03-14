@@ -50,6 +50,7 @@ import {
 } from "lucide-react";
 import { SnapshotControls } from "./snapshot-controls";
 import { MediaLibrary } from "./media-library";
+import { AssetProvider } from "./asset-context";
 import Image from "next/image";
 
 // ─── Types ──────────────────────────────────────────
@@ -188,11 +189,12 @@ export function SiteBuilder({
           customCss,
           header,
           footer,
+          pages,
         },
       },
       "*"
     );
-  }, [selectedTheme, themeVars, fonts, customCss, header, footer, previewReady]);
+  }, [selectedTheme, themeVars, fonts, customCss, header, footer, pages, previewReady]);
 
   // Debounced preview updates
   useEffect(() => {
@@ -320,6 +322,7 @@ export function SiteBuilder({
     : null;
 
   return (
+    <AssetProvider>
     <div className="-mx-4 -my-8 flex h-screen overflow-hidden bg-[var(--card)] sm:-mx-6 lg:-mx-8">
       {/* ─── Left: Editor Panel ──────────────────── */}
       <div className="flex w-[400px] min-w-[360px] flex-col border-r border-[var(--border)]">
@@ -940,5 +943,6 @@ export function SiteBuilder({
         </div>
       </div>
     </div>
+    </AssetProvider>
   );
 }

@@ -21,7 +21,7 @@ const s3 = new S3Client({
     : undefined, // Falls back to IAM role in production
 });
 
-const BUCKET = process.env.S3_BUCKET_NAME || "memberwise-templates";
+const BUCKET = process.env.S3_BUCKET_NAME || "memberwise-assets";
 const CDN_URL = process.env.S3_CDN_URL; // Optional CloudFront URL
 
 // ─── Key Helpers ──────────────────────────────────────

@@ -5,8 +5,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, X, GripVertical } from "lucide-react";
+import { Plus, X, GripVertical, Search, ChevronDown, Upload, Trash2, Image as ImageIcon, FolderOpen, Link as LinkIcon } from "lucide-react";
+import * as LucideIcons from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { SectionDocument } from "@/lib/types/site-document";
+import { useAssets } from "./asset-context";
+import { Spinner } from "@/components/ui/spinner";
 
 // ─── Shared Helpers ──────────────────────────────────
 
@@ -19,6 +23,381 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <Label className="text-xs text-[var(--muted-foreground)]">{label}</Label>
       {children}
     </div>
+  );
+}
+
+// ─── Curated icon list (popular Lucide icons) ───────
+const ICON_LIST = [
+  "Star", "Heart", "Users", "Shield", "Zap", "Globe", "Mail", "Phone", "MapPin", "Clock",
+  "Calendar", "Camera", "Image", "Video", "Music", "Headphones", "Mic", "Speaker",
+  "BookOpen", "FileText", "Folder", "Archive", "Download", "Upload", "Link", "Share2",
+  "Send", "MessageCircle", "MessageSquare", "Bell", "BellRing", "AlertCircle", "Info",
+  "HelpCircle", "CheckCircle", "XCircle", "Award", "Trophy", "Target", "Flag",
+  "Bookmark", "Tag", "Hash", "AtSign", "Search", "Filter", "Settings", "Sliders",
+  "BarChart3", "PieChart", "TrendingUp", "Activity", "LineChart", "LayoutGrid",
+  "Home", "Building", "Store", "Briefcase", "GraduationCap", "Lightbulb", "Palette",
+  "Paintbrush", "Pencil", "Code", "Terminal", "Database", "Server", "Cloud", "Wifi",
+  "Lock", "Unlock", "Key", "Eye", "EyeOff", "Fingerprint", "ShieldCheck",
+  "CreditCard", "DollarSign", "Wallet", "Receipt", "ShoppingCart", "ShoppingBag", "Package",
+  "Truck", "Plane", "Car", "Navigation", "Compass", "Map", "Route",
+  "Sun", "Moon", "CloudRain", "Snowflake", "Flame", "Leaf", "TreePine", "Mountain",
+  "Rocket", "Sparkles", "Wand2", "Crown", "Gem", "Gift", "PartyPopper", "Cake",
+  "ThumbsUp", "ThumbsDown", "SmilePlus", "Laugh", "Frown", "HandMetal",
+  "ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown", "ChevronRight", "ExternalLink",
+  "Play", "Pause", "SkipForward", "Volume2", "Maximize", "Minimize",
+  "Plus", "Minus", "X", "Check", "MoreHorizontal", "Menu", "Grid", "List",
+  "Cpu", "Smartphone", "Monitor", "Printer", "Watch", "Gamepad2",
+  "Utensils", "Coffee", "Wine", "Pizza", "Apple", "Cookie",
+  "Dog", "Cat", "Bird", "Bug", "Fish",
+  "Handshake", "UsersRound", "UserPlus", "Contact", "CircleUser",
+];
+
+function IconPicker({ value, onChange }: { value: string; onChange: (icon: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const CurrentIcon = (LucideIcons as any)[value] || LucideIcons.Star;
+  const filtered = search
+    ? ICON_LIST.filter((name) => name.toLowerCase().includes(search.toLowerCase()))
+    : ICON_LIST;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex h-9 w-full items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 text-xs transition-colors hover:bg-[var(--accent)]"
+      >
+        <CurrentIcon className="h-4 w-4 text-[var(--primary)]" />
+        <span className="flex-1 text-left truncate text-[var(--foreground)]">{value || "Select icon"}</span>
+        <ChevronDown className="h-3 w-3 text-[var(--muted-foreground)]" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 w-[280px] rounded-lg border border-[var(--border)] bg-[var(--card)] p-2 shadow-lg">
+          <div className="relative mb-2">
+            <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted-foreground)]" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search icons..."
+              autoFocus
+              className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--background)] pl-7 pr-2 text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            />
+          </div>
+          <div className="grid max-h-[200px] grid-cols-7 gap-0.5 overflow-y-auto">
+            {filtered.map((name) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const Icon = (LucideIcons as any)[name];
+              if (!Icon) return null;
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => { onChange(name); setOpen(false); setSearch(""); }}
+                  title={name}
+                  className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
+                    value === name
+                      ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                      : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                </button>
+              );
+            })}
+            {filtered.length === 0 && (
+              <p className="col-span-7 py-4 text-center text-xs text-[var(--muted-foreground)]">No icons found</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Image Field with Inline Asset Browser ──────────
+function ImageField({ value, onChange, label }: { value: string; onChange: (url: string) => void; label?: string }) {
+  const [showBrowser, setShowBrowser] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const { assets, loaded, loading, uploading, loadAssets, uploadFiles, removeAsset } = useAssets();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOpen = useCallback(() => {
+    setShowBrowser(true);
+    if (!loaded) loadAssets();
+  }, [loaded, loadAssets]);
+
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const uploaded = await uploadFiles(files);
+    if (uploaded.length > 0) {
+      onChange(uploaded[0].url);
+    }
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    handleFiles(e.dataTransfer.files);
+  }
+
+  function formatSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return (
+    <Field label={label || "Image"}>
+      <div className="space-y-2">
+        {/* Selected image preview */}
+        {value && (
+          <div className="relative aspect-video w-full overflow-hidden rounded-md border border-[var(--border)] bg-[var(--muted)]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={value} alt="" className="h-full w-full object-cover" />
+            <div className="absolute right-1 top-1 flex gap-1">
+              <button
+                type="button"
+                onClick={() => { setShowBrowser(true); if (!loaded) loadAssets(); }}
+                className="rounded-full bg-black/50 p-1 text-white hover:bg-black/70 transition-colors"
+                title="Change image"
+              >
+                <FolderOpen className="h-3 w-3" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange("")}
+                className="rounded-full bg-black/50 p-1 text-white hover:bg-black/70 transition-colors"
+                title="Remove image"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* No image selected — show upload zone */}
+        {!value && !showBrowser && (
+          <div
+            className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-3 py-5 transition-colors cursor-pointer ${
+              dragOver
+                ? "border-[var(--primary)] bg-[var(--primary)]/5"
+                : "border-[var(--border)] hover:border-[var(--muted-foreground)] hover:bg-[var(--accent)]/30"
+            }`}
+            onClick={handleOpen}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleFiles(e.target.files)}
+              className="hidden"
+            />
+            {uploading ? (
+              <Spinner className="mb-1.5 h-5 w-5 text-[var(--primary)]" />
+            ) : (
+              <Upload className="mb-1.5 h-5 w-5 text-[var(--muted-foreground)]" />
+            )}
+            <p className="text-xs font-medium text-[var(--foreground)]">
+              {uploading ? "Uploading..." : "Click to browse assets"}
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">
+              or drag & drop an image here
+            </p>
+          </div>
+        )}
+
+        {/* Action buttons when no image and browser closed */}
+        {!value && !showBrowser && (
+          <div className="flex gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              className="h-7 flex-1 text-[11px]"
+            >
+              <Upload className="mr-1 h-3 w-3" />
+              Upload New
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowUrlInput(!showUrlInput)}
+              className="h-7 text-[11px]"
+            >
+              <LinkIcon className="mr-1 h-3 w-3" />
+              URL
+            </Button>
+          </div>
+        )}
+
+        {/* URL input toggle */}
+        {showUrlInput && !showBrowser && (
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="https://example.com/image.jpg"
+            className="text-xs"
+            autoFocus
+          />
+        )}
+
+        {/* Inline asset browser */}
+        {showBrowser && (
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+            {/* Browser header */}
+            <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--muted)]/50 px-3 py-2">
+              <div className="flex items-center gap-1.5">
+                <FolderOpen className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
+                <span className="text-[11px] font-semibold">Your Assets</span>
+                <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">
+                  {assets.length}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleFiles(e.target.files)}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="flex items-center gap-1 rounded-md bg-[var(--primary)] px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-[var(--primary)]/90 disabled:opacity-50"
+                >
+                  {uploading ? <Spinner className="h-3 w-3" /> : <Upload className="h-3 w-3" />}
+                  Upload
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowBrowser(false)}
+                  className="rounded p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Drop zone + grid */}
+            <div
+              className={`p-2 transition-colors ${dragOver ? "bg-[var(--primary)]/5" : ""}`}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+            >
+              {loading && assets.length === 0 ? (
+                <div className="flex items-center justify-center py-6">
+                  <Spinner className="h-5 w-5" />
+                </div>
+              ) : assets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6">
+                  <ImageIcon className="mb-2 h-6 w-6 text-[var(--muted-foreground)]" />
+                  <p className="text-[11px] text-[var(--muted-foreground)]">No images uploaded yet</p>
+                  <p className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">
+                    Upload or drag images here
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-1.5 max-h-[240px] overflow-y-auto">
+                  {assets.map((asset) => {
+                    const isSelected = value === asset.url;
+                    return (
+                      <div
+                        key={asset.filename}
+                        className={`group relative cursor-pointer overflow-hidden rounded-md border transition-all ${
+                          isSelected
+                            ? "border-[var(--primary)] ring-2 ring-[var(--primary)]/30"
+                            : "border-[var(--border)] hover:border-[var(--muted-foreground)]"
+                        }`}
+                        onClick={() => {
+                          onChange(asset.url);
+                          setShowBrowser(false);
+                        }}
+                      >
+                        <div className="relative aspect-square overflow-hidden bg-[var(--muted)]">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={asset.url}
+                            alt={asset.filename}
+                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                            loading="lazy"
+                          />
+                          {isSelected && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-[var(--primary)]/20">
+                              <div className="rounded-full bg-[var(--primary)] p-1">
+                                <LucideIcons.Check className="h-3 w-3 text-white" />
+                              </div>
+                            </div>
+                          )}
+                          {/* Delete button on hover */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeAsset(asset.filename);
+                              if (value === asset.url) onChange("");
+                            }}
+                            className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-500"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                        <div className="px-1.5 py-1">
+                          <p className="truncate text-[9px] font-medium text-[var(--foreground)]">
+                            {asset.filename.replace(/^\d+-/, "")}
+                          </p>
+                          <p className="text-[9px] text-[var(--muted-foreground)]">
+                            {formatSize(asset.size)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* URL fallback */}
+            <div className="border-t border-[var(--border)] px-2 py-2">
+              <div className="flex items-center gap-1.5">
+                <LinkIcon className="h-3 w-3 shrink-0 text-[var(--muted-foreground)]" />
+                <Input
+                  value={value}
+                  onChange={(e) => onChange(e.target.value)}
+                  placeholder="Or paste image URL..."
+                  className="h-7 text-[11px]"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </Field>
   );
 }
 
@@ -199,14 +578,11 @@ function HeroEditor({ props, onChange }: { props: Props; onChange: OnChange }) {
           <option value="large">Large</option>
         </Select>
       </Field>
-      <Field label="Background Image URL">
-        <Input
-          value={(props.backgroundImage as string) || ""}
-          onChange={(e) => onChange({ ...props, backgroundImage: e.target.value })}
-          placeholder="https://... or paste from Media Library"
-          className="text-xs"
-        />
-      </Field>
+      <ImageField
+        label="Background Image"
+        value={(props.backgroundImage as string) || ""}
+        onChange={(url) => onChange({ ...props, backgroundImage: url })}
+      />
     </div>
   );
 }
@@ -245,14 +621,11 @@ function RichTextSectionEditor({ props, onChange }: { props: Props; onChange: On
 function ImageBannerEditor({ props, onChange }: { props: Props; onChange: OnChange }) {
   return (
     <div className="space-y-3">
-      <Field label="Image URL">
-        <Input
-          value={(props.imageUrl as string) || ""}
-          onChange={(e) => onChange({ ...props, imageUrl: e.target.value })}
-          placeholder="https://... or paste from Media Library"
-          className="text-xs"
-        />
-      </Field>
+      <ImageField
+        label="Image"
+        value={(props.imageUrl as string) || ""}
+        onChange={(url) => onChange({ ...props, imageUrl: url })}
+      />
       <Field label="Alt Text">
         <Input
           value={(props.alt as string) || ""}
@@ -401,9 +774,7 @@ function CardsEditor({ props, onChange }: { props: Props; onChange: OnChange }) 
         addLabel="Add Card"
         renderItem={(item, _, update) => (
           <div className="space-y-2">
-            <Field label="Image URL">
-              <Input value={item.image || ""} onChange={(e) => update({ image: e.target.value })} placeholder="https://..." className="text-xs" />
-            </Field>
+            <ImageField label="Image" value={item.image || ""} onChange={(url) => update({ image: url })} />
             <Field label="Title">
               <Input value={item.title} onChange={(e) => update({ title: e.target.value })} className="text-xs" />
             </Field>
@@ -520,9 +891,7 @@ function TeamEditor({ props, onChange }: { props: Props; onChange: OnChange }) {
         addLabel="Add Member"
         renderItem={(member, _, update) => (
           <div className="space-y-2">
-            <Field label="Photo URL">
-              <Input value={member.image || ""} onChange={(e) => update({ image: e.target.value })} placeholder="https://..." className="text-xs" />
-            </Field>
+            <ImageField label="Photo" value={member.image || ""} onChange={(url) => update({ image: url })} />
             <div className="grid grid-cols-2 gap-2">
               <Field label="Name">
                 <Input value={member.name} onChange={(e) => update({ name: e.target.value })} className="text-xs" />
@@ -562,9 +931,7 @@ function LogoCloudEditor({ props, onChange }: { props: Props; onChange: OnChange
         addLabel="Add Logo"
         renderItem={(logo, _, update) => (
           <div className="space-y-2">
-            <Field label="Logo Image URL">
-              <Input value={logo.src} onChange={(e) => update({ src: e.target.value })} placeholder="https://..." className="text-xs" />
-            </Field>
+            <ImageField label="Logo Image" value={logo.src} onChange={(url) => update({ src: url })} />
             <div className="grid grid-cols-2 gap-2">
               <Field label="Alt Text">
                 <Input value={logo.alt || ""} onChange={(e) => update({ alt: e.target.value })} className="text-xs" />
@@ -682,7 +1049,7 @@ function FeaturesEditor({ props, onChange }: { props: Props; onChange: OnChange 
           <div className="space-y-2">
             <div className="grid grid-cols-3 gap-2">
               <Field label="Icon">
-                <Input value={item.icon || ""} onChange={(e) => update({ icon: e.target.value })} placeholder="Star" className="text-xs" />
+                <IconPicker value={item.icon || "Star"} onChange={(icon) => update({ icon })} />
               </Field>
               <div className="col-span-2">
                 <Field label="Title">
@@ -910,9 +1277,7 @@ function GalleryEditor({ props, onChange }: { props: Props; onChange: OnChange }
         addLabel="Add Image"
         renderItem={(item, _, update) => (
           <div className="space-y-2">
-            <Field label="Image URL">
-              <Input value={item.src} onChange={(e) => update({ src: e.target.value })} placeholder="https://... or paste from Media Library" className="text-xs" />
-            </Field>
+            <ImageField label="Image" value={item.src} onChange={(url) => update({ src: url })} />
             <Field label="Alt Text">
               <Input value={item.alt || ""} onChange={(e) => update({ alt: e.target.value })} placeholder="Image description" className="text-xs" />
             </Field>

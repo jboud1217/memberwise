@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const registerSchema = z.object({
-  organizationName: z.string().min(2, "Organization name must be at least 2 characters"),
+  organizationName: z.string().min(4, "Organization name must be at least 4 characters"),
   slug: z
     .string()
     .min(3, "Slug must be at least 3 characters")

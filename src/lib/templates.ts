@@ -83,7 +83,7 @@ export const TEMPLATES: LayoutTemplate[] = [
               subheading: "Join our community and connect with members who share your passion.",
               ctaText: "Become a Member",
               ctaLink: "/portal",
-              backgroundImage: "/templates/heroes/default-hero-1.jpg",
+              backgroundImage: "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1920&q=80",
             },
           },
           {
@@ -227,7 +227,7 @@ export const TEMPLATES: LayoutTemplate[] = [
               subheading: "The premier professional association for leaders and practitioners.",
               ctaText: "Join the Association",
               ctaLink: "/portal",
-              backgroundImage: "/templates/heroes/default-hero-2.jpg",
+              backgroundImage: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1920&q=80",
             },
           },
           {
@@ -374,7 +374,7 @@ export const TEMPLATES: LayoutTemplate[] = [
               subheading: "Stay informed, get involved, and make a difference in our neighborhood.",
               ctaText: "Join Our Community",
               ctaLink: "/portal",
-              backgroundImage: "/templates/heroes/default-hero-1.jpg",
+              backgroundImage: "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1920&q=80",
             },
           },
           {
@@ -619,7 +619,7 @@ export const TEMPLATES: LayoutTemplate[] = [
               subheading: "Support our mission and help us create lasting impact in the communities we serve.",
               ctaText: "Donate Now",
               ctaLink: "/portal",
-              backgroundImage: "/templates/heroes/default-hero-1.jpg",
+              backgroundImage: "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1920&q=80",
             },
           },
           {
@@ -773,7 +773,7 @@ export const TEMPLATES: LayoutTemplate[] = [
               subheading: "Credentialing, advocacy, and professional development for thousands of members nationwide.",
               ctaText: "Become a Member",
               ctaLink: "/portal",
-              backgroundImage: "/templates/heroes/default-hero-2.jpg",
+              backgroundImage: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1920&q=80",
             },
           },
           {

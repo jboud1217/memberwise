@@ -216,7 +216,7 @@ export default function RegisterPage() {
                 </Label>
                 <Input
                   id="organizationName"
-                  placeholder="North Buckhead Civic Association"
+                  placeholder="My Member Organization"
                   className="h-11"
                   {...registerField("organizationName", {
                     onChange: (e) => {

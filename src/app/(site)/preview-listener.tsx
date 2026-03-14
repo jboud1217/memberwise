@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import type { PageDocument } from "@/lib/types/site-document";
+import { SectionWrapper } from "@/components/templates/sections/section-wrapper";
+import { renderSection } from "@/components/templates/sections";
 
 /**
  * Listens for postMessage events from the dashboard Site Builder
- * and applies real-time theme/style updates without saving to S3.
+ * and applies real-time theme/style/content updates without saving to S3.
  *
- * Only active when the URL has ?_preview=1
+ * Only active when embedded in an iframe (Site Builder preview).
  */
 export function PreviewListener() {
+  const [draftPages, setDraftPages] = useState<PageDocument[] | null>(null);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+
   useEffect(() => {
     // Only activate when embedded in an iframe (Site Builder preview)
     if (window.parent === window) return;
@@ -19,12 +26,11 @@ export function PreviewListener() {
     function handleMessage(e: MessageEvent) {
       if (e.data?.type !== "MEMBERWISE_PREVIEW_UPDATE") return;
 
-      const { themeVariables, fonts, customCss, header, footer } = e.data.payload;
+      const { themeVariables, fonts, customCss, header, footer, pages } = e.data.payload;
 
       // ─── Apply theme CSS variables ────────────────
       if (themeVariables) {
         const root = document.documentElement;
-        // Also check the first themed container
         const themedEl = document.querySelector("[data-theme-container]") as HTMLElement;
         const target = themedEl || root;
 
@@ -35,7 +41,6 @@ export function PreviewListener() {
 
       // ─── Apply font changes ───────────────────────
       if (fonts) {
-        // Load fonts via Google Fonts
         const families = new Set([fonts.heading, fonts.body].filter(Boolean));
         if (families.size > 0) {
           const query = Array.from(families)
@@ -43,7 +48,6 @@ export function PreviewListener() {
             .join("&");
           const fontUrl = `https://fonts.googleapis.com/css2?${query}&display=swap`;
 
-          // Only add if not already loaded
           if (!document.querySelector(`link[href="${fontUrl}"]`)) {
             const link = document.createElement("link");
             link.rel = "stylesheet";
@@ -52,7 +56,6 @@ export function PreviewListener() {
           }
         }
 
-        // Apply body font
         if (fonts.body) {
           const themedEl = document.querySelector("[data-theme-container]") as HTMLElement;
           if (themedEl) {
@@ -60,7 +63,6 @@ export function PreviewListener() {
           }
         }
 
-        // Apply heading font to all headings
         if (fonts.heading) {
           document.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach((el) => {
             (el as HTMLElement).style.fontFamily = `"${fonts.heading}", sans-serif`;
@@ -88,13 +90,78 @@ export function PreviewListener() {
       if (footer) {
         applyFooterChanges(footer);
       }
+
+      // ─── Apply page content changes ───────────────
+      if (pages) {
+        setDraftPages(pages);
+      }
     }
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  return null;
+  // Set up portal target when draft pages arrive
+  useEffect(() => {
+    if (!draftPages) return;
+
+    const main = document.querySelector("main");
+    if (!main) return;
+
+    // Hide original server-rendered children
+    Array.from(main.children).forEach((child) => {
+      const el = child as HTMLElement;
+      if (el.dataset?.previewDraft) return;
+      el.style.display = "none";
+    });
+
+    // Create or find the portal target
+    let target = main.querySelector("[data-preview-draft]") as HTMLElement;
+    if (!target) {
+      target = document.createElement("div");
+      target.setAttribute("data-preview-draft", "true");
+      main.appendChild(target);
+    }
+    setPortalTarget(target);
+
+    return () => {
+      // Restore original children on cleanup
+      Array.from(main.children).forEach((child) => {
+        const el = child as HTMLElement;
+        if (el.dataset?.previewDraft) {
+          el.remove();
+          return;
+        }
+        el.style.display = "";
+      });
+    };
+  }, [draftPages]);
+
+  // Render draft sections via portal
+  if (!draftPages || !portalTarget) return null;
+
+  const currentPath = window.location.pathname;
+  const currentSlug = currentPath === "/" ? "landing" : currentPath.replace(/^\//, "");
+  const page = draftPages.find((p) => p.slug === currentSlug);
+
+  if (!page) return null;
+
+  return createPortal(
+    <>
+      {page.sections
+        .filter((s) => s.visible !== false)
+        .map((section) => (
+          <SectionWrapper key={section.id} style={section.style}>
+            {renderSection({
+              id: section.id,
+              type: section.type,
+              props: section.props,
+            })}
+          </SectionWrapper>
+        ))}
+    </>,
+    portalTarget
+  );
 }
 
 function applyHeaderChanges(header: {
@@ -106,14 +173,11 @@ function applyHeaderChanges(header: {
   const headerEl = document.querySelector("header");
   if (!headerEl) return;
 
-  // Update nav links
   const nav = headerEl.querySelector("nav");
   if (nav && header.navLinks) {
-    // Clear existing nav links
     const existingLinks = nav.querySelectorAll("a:not([data-cta])");
     existingLinks.forEach((el) => el.remove());
 
-    // Add new links before CTA
     const ctaEl = nav.querySelector("[data-cta]");
     header.navLinks.forEach((link) => {
       const a = document.createElement("a");
@@ -131,7 +195,6 @@ function applyHeaderChanges(header: {
       }
     });
 
-    // Update or create CTA button
     if (header.ctaButton) {
       let cta = nav.querySelector("[data-cta]") as HTMLAnchorElement;
       if (!cta) {
@@ -156,7 +219,6 @@ function applyFooterChanges(footer: {
   const footerEl = document.querySelector("footer");
   if (!footerEl) return;
 
-  // Update copyright text
   if (footer.copyright) {
     const copyrightEl = footerEl.querySelector("p");
     if (copyrightEl) {

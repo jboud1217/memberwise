@@ -16,11 +16,14 @@ import {
   ContactRound,
   Tag,
   ChevronRight,
+  ChevronLeft,
   Command,
   Search,
   Globe,
   ExternalLink,
   PenLine,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -52,7 +55,7 @@ function getBreadcrumb(pathname: string): string | null {
   return null;
 }
 
-export function Sidebar({ siteUrl = "/" }: { siteUrl?: string }) {
+export function Sidebar({ siteUrl = "/", collapsed = false, onToggleCollapse }: { siteUrl?: string; collapsed?: boolean; onToggleCollapse?: () => void }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const breadcrumb = getBreadcrumb(pathname);
@@ -103,73 +106,99 @@ export function Sidebar({ siteUrl = "/" }: { siteUrl?: string }) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-[var(--border)] bg-[var(--card)] transition-transform duration-300 lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-[var(--border)] bg-[var(--card)] transition-all duration-300 lg:translate-x-0",
+          collapsed ? "w-[68px]" : "w-64",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-[var(--border)] px-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-[0_2px_8px_rgba(99,102,241,0.3)]">
+        <div className={cn("flex h-16 items-center border-b border-[var(--border)]", collapsed ? "justify-center px-2" : "gap-3 px-5")}>
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-[0_2px_8px_rgba(99,102,241,0.3)]">
             <span className="text-sm font-bold text-white">M</span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-[15px] font-semibold tracking-tight leading-tight">MemberWise</span>
-            <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Membership Platform</span>
-          </div>
+          {!collapsed && (
+            <div className="flex flex-col min-w-0">
+              <span className="text-[15px] font-semibold tracking-tight leading-tight truncate">MemberWise</span>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Membership Platform</span>
+            </div>
+          )}
         </div>
 
         {/* Search hint */}
-        <div className="px-3 pt-4 pb-1">
-          <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--muted)]/50 px-3 py-2 text-xs text-[var(--muted-foreground)] transition-colors hover:border-[var(--ring)]/30 hover:bg-[var(--accent)]">
-            <Search className="h-3.5 w-3.5" />
-            <span className="flex-1">Search...</span>
-            <kbd className="hidden items-center gap-0.5 rounded border border-[var(--border)] bg-[var(--background)] px-1.5 py-0.5 text-[10px] font-medium sm:inline-flex">
-              <Command className="h-2.5 w-2.5" />K
-            </kbd>
+        {!collapsed && (
+          <div className="px-3 pt-4 pb-1">
+            <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--muted)]/50 px-3 py-2 text-xs text-[var(--muted-foreground)] transition-colors hover:border-[var(--ring)]/30 hover:bg-[var(--accent)]">
+              <Search className="h-3.5 w-3.5" />
+              <span className="flex-1">Search...</span>
+              <kbd className="hidden items-center gap-0.5 rounded border border-[var(--border)] bg-[var(--background)] px-1.5 py-0.5 text-[10px] font-medium sm:inline-flex">
+                <Command className="h-2.5 w-2.5" />K
+              </kbd>
+            </div>
           </div>
-        </div>
+        )}
+        {collapsed && (
+          <div className="flex justify-center pt-4 pb-1">
+            <button className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted-foreground)] hover:bg-[var(--accent)] transition-colors" title="Search">
+              <Search className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         {/* Nav links */}
-        <nav className="flex-1 space-y-0.5 px-3 py-3 overflow-y-auto">
+        <nav className={cn("flex-1 space-y-0.5 py-3 overflow-y-auto", collapsed ? "px-2" : "px-3")}>
           {/* Website section */}
-          <p className="mb-2 mt-4 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">
-            Website
-          </p>
+          {!collapsed && (
+            <p className="mb-2 mt-4 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">
+              Website
+            </p>
+          )}
+          {collapsed && <div className="mt-2 mb-2 mx-auto h-px w-6 bg-[var(--border)]" />}
           <Link
             href="/settings/template"
             onClick={() => setMobileOpen(false)}
+            title={collapsed ? "Site Builder" : undefined}
             className={cn(
-              "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
+              "group relative flex items-center rounded-lg text-[13px] font-medium transition-all duration-150",
+              collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2",
               pathname === "/settings/template"
                 ? "bg-[var(--primary)] text-white shadow-[0_1px_3px_rgba(99,102,241,0.3)]"
                 : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
             )}
           >
             <PenLine className={cn("h-4 w-4 shrink-0", pathname !== "/settings/template" && "transition-transform duration-150 group-hover:scale-110")} />
-            <span className="flex-1">Site Builder</span>
-            <kbd className={cn(
-              "hidden text-[10px] font-mono rounded px-1 py-0.5 lg:inline-block transition-colors",
-              pathname === "/settings/template"
-                ? "bg-white/20 text-white/70"
-                : "text-[var(--muted-foreground)]/50 group-hover:text-[var(--muted-foreground)]"
-            )}>
-              S
-            </kbd>
+            {!collapsed && <span className="flex-1">Site Builder</span>}
+            {!collapsed && (
+              <kbd className={cn(
+                "hidden text-[10px] font-mono rounded px-1 py-0.5 lg:inline-block transition-colors",
+                pathname === "/settings/template"
+                  ? "bg-white/20 text-white/70"
+                  : "text-[var(--muted-foreground)]/50 group-hover:text-[var(--muted-foreground)]"
+              )}>
+                S
+              </kbd>
+            )}
           </Link>
           <a
             href={siteUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--muted-foreground)] transition-all duration-150 hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
+            title={collapsed ? "View Website" : undefined}
+            className={cn(
+              "group flex items-center rounded-lg text-[13px] font-medium text-[var(--muted-foreground)] transition-all duration-150 hover:bg-[var(--accent)] hover:text-[var(--foreground)]",
+              collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2"
+            )}
           >
             <Globe className="h-4 w-4 shrink-0 transition-transform duration-150 group-hover:scale-110" />
-            <span className="flex-1">View Website</span>
-            <ExternalLink className="h-3 w-3 opacity-40 group-hover:opacity-70 transition-opacity" />
+            {!collapsed && <span className="flex-1">View Website</span>}
+            {!collapsed && <ExternalLink className="h-3 w-3 opacity-40 group-hover:opacity-70 transition-opacity" />}
           </a>
 
-          <p className="mb-2 mt-4 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">
-            Manage
-          </p>
+          {!collapsed && (
+            <p className="mb-2 mt-4 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">
+              Manage
+            </p>
+          )}
+          {collapsed && <div className="mt-2 mb-2 mx-auto h-px w-6 bg-[var(--border)]" />}
           {navigation.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
@@ -177,30 +206,34 @@ export function Sidebar({ siteUrl = "/" }: { siteUrl?: string }) {
                 key={item.name}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
+                title={collapsed ? item.name : undefined}
                 className={cn(
-                  "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
+                  "group relative flex items-center rounded-lg text-[13px] font-medium transition-all duration-150",
+                  collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2",
                   isActive
                     ? "bg-[var(--primary)] text-white shadow-[0_1px_3px_rgba(99,102,241,0.3)]"
                     : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
                 )}
               >
                 <item.icon className={cn("h-4 w-4 shrink-0", !isActive && "transition-transform duration-150 group-hover:scale-110")} />
-                <span className="flex-1">{item.name}</span>
-                <kbd className={cn(
-                  "hidden text-[10px] font-mono rounded px-1 py-0.5 lg:inline-block transition-colors",
-                  isActive
-                    ? "bg-white/20 text-white/70"
-                    : "text-[var(--muted-foreground)]/50 group-hover:text-[var(--muted-foreground)]"
-                )}>
-                  {item.shortcut}
-                </kbd>
+                {!collapsed && <span className="flex-1">{item.name}</span>}
+                {!collapsed && (
+                  <kbd className={cn(
+                    "hidden text-[10px] font-mono rounded px-1 py-0.5 lg:inline-block transition-colors",
+                    isActive
+                      ? "bg-white/20 text-white/70"
+                      : "text-[var(--muted-foreground)]/50 group-hover:text-[var(--muted-foreground)]"
+                  )}>
+                    {item.shortcut}
+                  </kbd>
+                )}
               </Link>
             );
           })}
         </nav>
 
         {/* Bottom nav */}
-        <div className="border-t border-[var(--border)] px-3 py-3 space-y-0.5">
+        <div className={cn("border-t border-[var(--border)] py-3 space-y-0.5", collapsed ? "px-2" : "px-3")}>
           {bottomNavigation.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
@@ -208,27 +241,52 @@ export function Sidebar({ siteUrl = "/" }: { siteUrl?: string }) {
                 key={item.name}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
+                title={collapsed ? item.name : undefined}
                 className={cn(
-                  "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
+                  "group flex items-center rounded-lg text-[13px] font-medium transition-all duration-150",
+                  collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2",
                   isActive
                     ? "bg-[var(--primary)] text-white shadow-[0_1px_3px_rgba(99,102,241,0.3)]"
                     : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
                 )}
               >
-                <item.icon className="h-4 w-4" />
-                {item.name}
+                <item.icon className="h-4 w-4 shrink-0" />
+                {!collapsed && item.name}
               </Link>
             );
           })}
           <form action="/api/auth/signout" method="POST">
             <button
               type="submit"
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--muted-foreground)] transition-all duration-150 hover:bg-red-500/10 hover:text-red-500"
+              title={collapsed ? "Sign Out" : undefined}
+              className={cn(
+                "flex w-full items-center rounded-lg text-[13px] font-medium text-[var(--muted-foreground)] transition-all duration-150 hover:bg-red-500/10 hover:text-red-500",
+                collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2"
+              )}
             >
-              <LogOut className="h-4 w-4" />
-              Sign Out
+              <LogOut className="h-4 w-4 shrink-0" />
+              {!collapsed && "Sign Out"}
             </button>
           </form>
+
+          {/* Collapse toggle */}
+          <button
+            onClick={onToggleCollapse}
+            className={cn(
+              "hidden lg:flex w-full items-center rounded-lg text-[13px] font-medium text-[var(--muted-foreground)] transition-all duration-150 hover:bg-[var(--accent)] hover:text-[var(--foreground)]",
+              collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2"
+            )}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4 shrink-0" />
+            ) : (
+              <>
+                <PanelLeftClose className="h-4 w-4 shrink-0" />
+                <span>Collapse</span>
+              </>
+            )}
+          </button>
         </div>
       </aside>
     </>

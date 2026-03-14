@@ -223,7 +223,9 @@ cat > /tmp/task-def.json <<TASKEOF
       {"name": "AUTH_URL", "value": "https://${DOMAIN}"},
       {"name": "NEXT_PUBLIC_APP_URL", "value": "https://${DOMAIN}"},
       {"name": "NEXT_PUBLIC_APP_DOMAIN", "value": "buckheadwebservices.com"},
-      {"name": "NODE_ENV", "value": "production"}
+      {"name": "NODE_ENV", "value": "production"},
+      {"name": "S3_BUCKET_NAME", "value": "memberwise-assets"},
+      {"name": "AWS_REGION", "value": "${REGION}"}
     ],
     "logConfiguration": {
       "logDriver": "awslogs",
@@ -234,7 +236,7 @@ cat > /tmp/task-def.json <<TASKEOF
       }
     },
     "healthCheck": {
-      "command": ["CMD-SHELL", "wget -q --spider http://localhost:3000/ || exit 1"],
+      "command": ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"],
       "interval": 30,
       "timeout": 5,
       "retries": 3,
@@ -282,7 +284,7 @@ if [ "$TG_ARN" = "None" ] || [ -z "$TG_ARN" ]; then
     --port 3000 \
     --vpc-id "$VPC_ID" \
     --target-type ip \
-    --health-check-path "/" \
+    --health-check-path "/api/health" \
     --health-check-interval-seconds 30 \
     --healthy-threshold-count 2 \
     --unhealthy-threshold-count 3 \
@@ -290,7 +292,12 @@ if [ "$TG_ARN" = "None" ] || [ -z "$TG_ARN" ]; then
     --query "TargetGroups[0].TargetGroupArn" --output text)
   log "Created target group"
 else
-  log "Target group exists"
+  # Ensure health check path is up to date
+  aws elbv2 modify-target-group \
+    --target-group-arn "$TG_ARN" \
+    --health-check-path "/api/health" \
+    --region "$REGION" >/dev/null 2>&1 || true
+  log "Target group exists (health check updated)"
 fi
 
 # Check for existing HTTPS certificate

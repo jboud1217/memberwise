@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import {
   FileText,
   ArrowLeft,
   Pencil,
+  GripVertical,
 } from "lucide-react";
 import type { PageDocument, SectionDocument, SectionType } from "@/lib/types/site-document";
 import { SectionEditor, SECTION_TYPE_INFO, SECTION_CATEGORIES } from "./section-editors";
@@ -109,6 +110,10 @@ function SectionItem({
   onDuplicate,
   onDelete,
   onToggleVisibility,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  isDragOver,
 }: {
   section: SectionDocument;
   index: number;
@@ -120,25 +125,48 @@ function SectionItem({
   onDuplicate: () => void;
   onDelete: () => void;
   onToggleVisibility: () => void;
+  onDragStart: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
+  isDragOver: boolean;
 }) {
   const info = SECTION_TYPE_INFO[section.type];
 
   return (
     <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart();
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        onDragOver(e);
+      }}
+      onDragEnd={onDragEnd}
       className={cn(
         "rounded-lg border transition-all",
         !section.visible && "opacity-50",
+        isDragOver && "border-[var(--primary)] bg-[var(--primary)]/5 ring-1 ring-[var(--primary)]/30",
         isOpen
           ? "border-[var(--primary)]/40 bg-[var(--card)] shadow-sm"
           : "border-[var(--border)] bg-[var(--card)] hover:border-[var(--muted-foreground)]/30"
       )}
     >
       {/* Header */}
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
-      >
+      <div className="flex w-full items-center gap-1 px-1 py-2.5 text-left">
+        <div
+          className="cursor-grab rounded p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] active:cursor-grabbing"
+          title="Drag to reorder"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex flex-1 items-center gap-2 text-left min-w-0"
+        >
         <span className="text-sm">{info?.icon || "📦"}</span>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium truncate">{info?.label || section.type}</p>
@@ -159,7 +187,8 @@ function SectionItem({
             isOpen && "rotate-90"
           )}
         />
-      </button>
+        </button>
+      </div>
 
       {/* Expanded content */}
       {isOpen && (
@@ -241,6 +270,20 @@ function PageDetail({
   const [openSection, setOpenSection] = useState<string | null>(null);
   const [showAddPicker, setShowAddPicker] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  function handleDrop() {
+    if (dragIndex !== null && dragOverIndex !== null && dragIndex !== dragOverIndex) {
+      const next = [...page.sections];
+      const [dragged] = next.splice(dragIndex, 1);
+      next.splice(dragOverIndex, 0, dragged);
+      onUpdate({ ...page, sections: next });
+      onDirty();
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
+  }
 
   function updateSection(index: number, section: SectionDocument) {
     const next = [...page.sections];
@@ -358,6 +401,13 @@ function PageDetail({
               onDuplicate={() => duplicateSection(i)}
               onDelete={() => deleteSection(i)}
               onToggleVisibility={() => toggleVisibility(i)}
+              onDragStart={() => setDragIndex(i)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOverIndex(i);
+              }}
+              onDragEnd={handleDrop}
+              isDragOver={dragOverIndex === i && dragIndex !== i}
             />
           ))
         )}
