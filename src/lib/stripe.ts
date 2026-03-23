@@ -20,6 +20,7 @@ export function getStripe(): Stripe {
 /** @deprecated Use getStripe() instead — this will throw at build time if key is missing */
 export const stripe = new Proxy({} as Stripe, {
   get(_, prop) {
-    return (getStripe() as Record<string | symbol, unknown>)[prop];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (getStripe() as any)[prop];
   },
 });
