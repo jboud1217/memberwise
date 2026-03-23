@@ -49,9 +49,9 @@ export default function InvitePage() {
         return;
       }
       const result = await getInviteDetails(token);
-      if ("error" in result) {
+      if ("error" in result && result.error) {
         setError(result.error);
-      } else {
+      } else if ("email" in result) {
         setInvite(result);
       }
       setLoading(false);
@@ -73,7 +73,7 @@ export default function InvitePage() {
       password: data.password,
     });
 
-    if ("error" in result) {
+    if ("error" in result && result.error) {
       setError(result.error);
       setSubmitting(false);
       return;
