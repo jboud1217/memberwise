@@ -3,7 +3,16 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
-export async function getInviteDetails(token: string) {
+export type InviteDetails = {
+  email: string;
+  role: string;
+  organizationName: string;
+  organizationSlug: string;
+};
+
+export async function getInviteDetails(
+  token: string
+): Promise<{ data: InviteDetails } | { error: string }> {
   if (!token) return { error: "Missing invite token" };
 
   const invite = await prisma.teamInvite.findUnique({
@@ -15,10 +24,12 @@ export async function getInviteDetails(token: string) {
   if (invite.expiresAt < new Date()) return { error: "This invite has expired" };
 
   return {
-    email: invite.email,
-    role: invite.role,
-    organizationName: invite.organization.name,
-    organizationSlug: invite.organization.slug,
+    data: {
+      email: invite.email,
+      role: invite.role,
+      organizationName: invite.organization.name,
+      organizationSlug: invite.organization.slug,
+    },
   };
 }
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { signIn } from "next-auth/react";
-import { getInviteDetails, acceptInvite } from "@/actions/accept-invite";
+import { getInviteDetails, acceptInvite, type InviteDetails } from "@/actions/accept-invite";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,12 +25,7 @@ export default function InvitePage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [invite, setInvite] = useState<{
-    email: string;
-    role: string;
-    organizationName: string;
-    organizationSlug: string;
-  } | null>(null);
+  const [invite, setInvite] = useState<InviteDetails | null>(null);
 
   const {
     register,
@@ -49,10 +44,10 @@ export default function InvitePage() {
         return;
       }
       const result = await getInviteDetails(token);
-      if ("error" in result && result.error) {
+      if ("error" in result) {
         setError(result.error);
-      } else if ("email" in result) {
-        setInvite(result);
+      } else {
+        setInvite(result.data);
       }
       setLoading(false);
     }
