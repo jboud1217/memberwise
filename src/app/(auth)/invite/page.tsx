@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { signIn } from "next-auth/react";
@@ -18,6 +18,14 @@ interface InviteForm {
 }
 
 export default function InvitePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-12"><Spinner className="h-6 w-6" /></div>}>
+      <InvitePageInner />
+    </Suspense>
+  );
+}
+
+function InvitePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || "";
