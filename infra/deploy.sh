@@ -46,7 +46,7 @@ echo "════════════════════════�
 aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
 log "Logged in to ECR"
 
-IMAGE_TAG="$(git rev-parse --short HEAD 2>/dev/null || echo 'latest')"
+IMAGE_TAG="$(git rev-parse --short HEAD 2>/dev/null || echo 'latest')-$(date +%s)"
 FULL_IMAGE="${ECR_REPO}:${IMAGE_TAG}"
 
 echo "Building image: $FULL_IMAGE"
@@ -201,8 +201,22 @@ fi
 aws logs create-log-group --log-group-name "/ecs/${APP_NAME}" --region "$REGION" 2>/dev/null || true
 log "Log group ready"
 
-# Generate AUTH_SECRET for production
-AUTH_SECRET=$(openssl rand -base64 32)
+# Persist AUTH_SECRET across deployments (regenerating it invalidates all sessions)
+AUTH_SECRET=$(aws secretsmanager get-secret-value --secret-id "${APP_NAME}/auth-secret" --region "$REGION" --query "SecretString" --output text 2>/dev/null || echo "")
+if [ -z "$AUTH_SECRET" ]; then
+  AUTH_SECRET=$(openssl rand -base64 32)
+  aws secretsmanager create-secret \
+    --name "${APP_NAME}/auth-secret" \
+    --secret-string "$AUTH_SECRET" \
+    --region "$REGION" >/dev/null 2>&1 || \
+  aws secretsmanager put-secret-value \
+    --secret-id "${APP_NAME}/auth-secret" \
+    --secret-string "$AUTH_SECRET" \
+    --region "$REGION" >/dev/null
+  log "Generated and stored new AUTH_SECRET"
+else
+  log "Using existing AUTH_SECRET from Secrets Manager"
+fi
 
 # Register task definition
 cat > /tmp/task-def.json <<TASKEOF
@@ -213,9 +227,10 @@ cat > /tmp/task-def.json <<TASKEOF
   "cpu": "512",
   "memory": "1024",
   "executionRoleArn": "${EXEC_ROLE_ARN}",
+  "taskRoleArn": "arn:aws:iam::438027399794:role/${APP_NAME}-ecs-task-role",
   "containerDefinitions": [{
     "name": "${APP_NAME}",
-    "image": "${ECR_REPO}:latest",
+    "image": "${ECR_REPO}:${IMAGE_TAG}",
     "portMappings": [{"containerPort": 3000, "protocol": "tcp"}],
     "environment": [
       {"name": "DATABASE_URL", "value": "${DATABASE_URL}"},
@@ -236,11 +251,11 @@ cat > /tmp/task-def.json <<TASKEOF
       }
     },
     "healthCheck": {
-      "command": ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"],
+      "command": ["CMD-SHELL", "wget -qO /dev/null http://localhost:3000/api/health || exit 1"],
       "interval": 30,
-      "timeout": 5,
-      "retries": 3,
-      "startPeriod": 60
+      "timeout": 10,
+      "retries": 5,
+      "startPeriod": 300
     }
   }]
 }
@@ -286,8 +301,9 @@ if [ "$TG_ARN" = "None" ] || [ -z "$TG_ARN" ]; then
     --target-type ip \
     --health-check-path "/api/health" \
     --health-check-interval-seconds 30 \
+    --health-check-timeout-seconds 10 \
     --healthy-threshold-count 2 \
-    --unhealthy-threshold-count 3 \
+    --unhealthy-threshold-count 5 \
     --region "$REGION" \
     --query "TargetGroups[0].TargetGroupArn" --output text)
   log "Created target group"
@@ -381,12 +397,12 @@ echo "════════════════════════�
 echo "  Step 7: ECS Service"
 echo "═══════════════════════════════════════════════"
 
-SERVICE_STATUS=$(aws ecs describe-services --cluster "$APP_NAME" --services "${APP_NAME}-service" --query "services[?status=='ACTIVE'].serviceName | [0]" --output text --region "$REGION" 2>/dev/null || echo "None")
+SERVICE_STATUS=$(aws ecs describe-services --cluster "$APP_NAME" --services "${APP_NAME}-web" --query "services[?status=='ACTIVE'].serviceName | [0]" --output text --region "$REGION" 2>/dev/null || echo "None")
 
 if [ "$SERVICE_STATUS" = "None" ] || [ -z "$SERVICE_STATUS" ]; then
   aws ecs create-service \
     --cluster "$APP_NAME" \
-    --service-name "${APP_NAME}-service" \
+    --service-name "${APP_NAME}-web" \
     --task-definition "$APP_NAME" \
     --desired-count 1 \
     --launch-type FARGATE \
@@ -397,7 +413,7 @@ if [ "$SERVICE_STATUS" = "None" ] || [ -z "$SERVICE_STATUS" ]; then
 else
   aws ecs update-service \
     --cluster "$APP_NAME" \
-    --service "${APP_NAME}-service" \
+    --service "${APP_NAME}-web" \
     --task-definition "$APP_NAME" \
     --force-new-deployment \
     --region "$REGION" >/dev/null

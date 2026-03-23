@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getContacts } from "@/actions/contacts";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,8 @@ function getPageNumbers(current: number, total: number): (number | "ellipsis")[]
   pages.push(total);
   return pages;
 }
+
+export const metadata: Metadata = { title: "Contacts" };
 
 export default async function ContactsPage({
   searchParams,
@@ -79,7 +82,7 @@ export default async function ContactsPage({
             </TableHeader>
             <TableBody>
               {contacts.map((contact) => (
-                <TableRow key={contact.id} className="group">
+                <TableRow key={contact.id} className="group transition-colors hover:bg-[var(--accent)]/50">
                   <TableCell>
                     <span className="font-medium">{contact.firstName} {contact.lastName}</span>
                   </TableCell>

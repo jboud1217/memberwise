@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
 
-export type Platform = "memberclicks" | "wildapricot" | "growthzone" | "yourmembership" | "generic";
+export type Platform = "memberclicks" | "wildapricot" | "growthzone" | "yourmembership" | "hivebrite" | "clubexpress" | "neoncrm" | "glueup" | "memberplanet" | "generic";
 
 export interface ColumnMapping {
   target: string;
@@ -14,6 +14,29 @@ export interface ParsedSheet {
   rows: Record<string, string>[];
   rowCount: number;
   colCount: number;
+}
+
+export interface MappingWithConfidence extends ColumnMapping {
+  confidence: "exact" | "high" | "medium" | "low";
+}
+
+export interface ValidationIssue {
+  row: number;
+  column: string;
+  field: string;
+  value: string;
+  issue: "invalid_email" | "invalid_date" | "missing_required" | "invalid_phone" | "duplicate_email_in_file";
+  message: string;
+}
+
+export interface ValidationReport {
+  issues: ValidationIssue[];
+  duplicateEmails: { email: string; rows: number[] }[];
+  totalIssues: number;
+  invalidEmails: number;
+  invalidDates: number;
+  missingRequired: number;
+  duplicateCount: number;
 }
 
 export interface ImportPreview {
@@ -30,6 +53,8 @@ export interface ImportPreview {
   mapping: Record<string, ColumnMapping>;
   mappedCount: number;
   unmappedColumns: string[];
+  confidence: Record<string, "exact" | "high" | "medium" | "low">;
+  validation: ValidationReport;
 }
 
 // ─── MemberClicks column mappings ──────────────────────────
@@ -216,6 +241,168 @@ const YOURMEMBERSHIP_MAP: Record<string, ColumnMapping> = {
   "zip code": { target: "zip", entity: "member" },
   "country": { target: "country", entity: "member" },
   "dues": { target: "dues", entity: "member" },
+};
+
+// ─── Hivebrite column mappings ───────────────────────────
+
+const HIVEBRITE_MAP: Record<string, ColumnMapping> = {
+  "firstname": { target: "firstName", entity: "contact" },
+  "lastname": { target: "lastName", entity: "contact" },
+  "email": { target: "email", entity: "contact" },
+  "phone number": { target: "phone", entity: "contact" },
+  "mobile number": { target: "mobile", entity: "contact" },
+  "company name": { target: "organizationName", entity: "member" },
+  "job title": { target: "title", entity: "contact" },
+  "membership plan": { target: "memberType", entity: "member" },
+  "membership status": { target: "status", entity: "member" },
+  "member since": { target: "joinDate", entity: "member" },
+  "membership expiration": { target: "expirationDate", entity: "member" },
+  "membership renewal date": { target: "renewalDate", entity: "member" },
+  "user id": { target: "legacyId", entity: "member" },
+  "external id": { target: "legacyOrganizationId", entity: "meta" },
+  "address": { target: "address1", entity: "member" },
+  "address complement": { target: "address2", entity: "member" },
+  "city": { target: "city", entity: "member" },
+  "state": { target: "state", entity: "member" },
+  "zip code": { target: "zip", entity: "member" },
+  "country": { target: "country", entity: "member" },
+  "bio": { target: "notes", entity: "member" },
+  "website": { target: "website", entity: "member" },
+  "linkedin url": { target: "website", entity: "member" },
+  "do not email": { target: "doNotEmail", entity: "contact" },
+  "prefix": { target: "prefix", entity: "contact" },
+  "graduation year": { target: "committees", entity: "member" },
+};
+
+// ─── ClubExpress column mappings ────────────────────────
+
+const CLUBEXPRESS_MAP: Record<string, ColumnMapping> = {
+  "first name": { target: "firstName", entity: "contact" },
+  "last name": { target: "lastName", entity: "contact" },
+  "email address": { target: "email", entity: "contact" },
+  "home phone": { target: "phoneHome", entity: "contact" },
+  "work phone": { target: "phoneWork", entity: "contact" },
+  "cell phone": { target: "mobile", entity: "contact" },
+  "club id": { target: "legacyId", entity: "member" },
+  "member #": { target: "memberNumber", entity: "member" },
+  "member type": { target: "memberType", entity: "member" },
+  "member status": { target: "status", entity: "member" },
+  "date joined": { target: "joinDate", entity: "member" },
+  "expiration date": { target: "expirationDate", entity: "member" },
+  "renewal date": { target: "renewalDate", entity: "member" },
+  "street address": { target: "address1", entity: "member" },
+  "street address 2": { target: "address2", entity: "member" },
+  "city": { target: "city", entity: "member" },
+  "state/province": { target: "state", entity: "member" },
+  "zip/postal code": { target: "zip", entity: "member" },
+  "country": { target: "country", entity: "member" },
+  "company": { target: "organizationName", entity: "member" },
+  "spouse first name": { target: "notes", entity: "member" },
+  "dues paid": { target: "dues", entity: "member" },
+  "notes": { target: "notes", entity: "member" },
+  "do not email": { target: "doNotEmail", entity: "contact" },
+  "do not mail": { target: "doNotMail", entity: "contact" },
+  "prefix": { target: "prefix", entity: "contact" },
+  "suffix": { target: "suffix", entity: "contact" },
+};
+
+// ─── Neon CRM column mappings ───────────────────────────
+
+const NEONCRM_MAP: Record<string, ColumnMapping> = {
+  "first name": { target: "firstName", entity: "contact" },
+  "last name": { target: "lastName", entity: "contact" },
+  "email 1": { target: "email", entity: "contact" },
+  "email 2": { target: "emailSecondary", entity: "contact" },
+  "phone 1 full number (standardized)": { target: "phone", entity: "contact" },
+  "phone 2 full number (standardized)": { target: "mobile", entity: "contact" },
+  "phone 1 full number": { target: "phone", entity: "contact" },
+  "phone 2 full number": { target: "mobile", entity: "contact" },
+  "account id": { target: "legacyId", entity: "member" },
+  "neon id": { target: "legacyId", entity: "member" },
+  "company name": { target: "organizationName", entity: "member" },
+  "membership name": { target: "memberType", entity: "member" },
+  "membership level": { target: "memberType", entity: "member" },
+  "membership status": { target: "status", entity: "member" },
+  "membership join date": { target: "joinDate", entity: "member" },
+  "membership expiration date": { target: "expirationDate", entity: "member" },
+  "membership start date": { target: "joinDate", entity: "member" },
+  "membership term end date": { target: "expirationDate", entity: "member" },
+  "membership cost": { target: "dues", entity: "member" },
+  "address line 1": { target: "address1", entity: "member" },
+  "address line 2": { target: "address2", entity: "member" },
+  "city": { target: "city", entity: "member" },
+  "state/province": { target: "state", entity: "member" },
+  "zip/postal code": { target: "zip", entity: "member" },
+  "country": { target: "country", entity: "member" },
+  "prefix": { target: "prefix", entity: "contact" },
+  "suffix": { target: "suffix", entity: "contact" },
+  "deceased": { target: "deceased", entity: "contact" },
+  "do not contact": { target: "doNotEmail", entity: "contact" },
+  "opt-in for email": { target: "doNotEmail", entity: "contact" },
+  "note": { target: "notes", entity: "member" },
+};
+
+// ─── Glue Up (formerly EventBank) column mappings ───────
+
+const GLUEUP_MAP: Record<string, ColumnMapping> = {
+  "first name": { target: "firstName", entity: "contact" },
+  "last name": { target: "lastName", entity: "contact" },
+  "email": { target: "email", entity: "contact" },
+  "phone": { target: "phone", entity: "contact" },
+  "mobile": { target: "mobile", entity: "contact" },
+  "organization": { target: "organizationName", entity: "member" },
+  "title": { target: "title", entity: "contact" },
+  "membership plan name": { target: "memberType", entity: "member" },
+  "membership plan": { target: "memberType", entity: "member" },
+  "membership status": { target: "status", entity: "member" },
+  "start date": { target: "joinDate", entity: "member" },
+  "end date": { target: "expirationDate", entity: "member" },
+  "renewal date": { target: "renewalDate", entity: "member" },
+  "contact id": { target: "legacyId", entity: "member" },
+  "member number": { target: "memberNumber", entity: "member" },
+  "address line 1": { target: "address1", entity: "member" },
+  "address line 2": { target: "address2", entity: "member" },
+  "city": { target: "city", entity: "member" },
+  "state": { target: "state", entity: "member" },
+  "zip": { target: "zip", entity: "member" },
+  "country": { target: "country", entity: "member" },
+  "amount": { target: "dues", entity: "member" },
+  "payment date": { target: "paymentDate", entity: "member" },
+  "website": { target: "website", entity: "member" },
+  "notes": { target: "notes", entity: "member" },
+};
+
+// ─── MemberPlanet column mappings ───────────────────────
+
+const MEMBERPLANET_MAP: Record<string, ColumnMapping> = {
+  "first name": { target: "firstName", entity: "contact" },
+  "last name": { target: "lastName", entity: "contact" },
+  "email address": { target: "email", entity: "contact" },
+  "primary phone": { target: "phone", entity: "contact" },
+  "mobile phone": { target: "mobile", entity: "contact" },
+  "home phone": { target: "phoneHome", entity: "contact" },
+  "work phone": { target: "phoneWork", entity: "contact" },
+  "organization name": { target: "organizationName", entity: "member" },
+  "member id": { target: "legacyId", entity: "member" },
+  "membership type": { target: "memberType", entity: "member" },
+  "membership level": { target: "memberType", entity: "member" },
+  "status": { target: "status", entity: "member" },
+  "membership status": { target: "status", entity: "member" },
+  "date joined": { target: "joinDate", entity: "member" },
+  "join date": { target: "joinDate", entity: "member" },
+  "expiration date": { target: "expirationDate", entity: "member" },
+  "renewal date": { target: "renewalDate", entity: "member" },
+  "address 1": { target: "address1", entity: "member" },
+  "address 2": { target: "address2", entity: "member" },
+  "city": { target: "city", entity: "member" },
+  "state": { target: "state", entity: "member" },
+  "zip": { target: "zip", entity: "member" },
+  "country": { target: "country", entity: "member" },
+  "dues amount": { target: "dues", entity: "member" },
+  "amount paid": { target: "dues", entity: "member" },
+  "payment date": { target: "paymentDate", entity: "member" },
+  "notes": { target: "notes", entity: "member" },
+  "do not email": { target: "doNotEmail", entity: "contact" },
 };
 
 // ─── Generic fuzzy patterns for unknown platforms ──────────
@@ -414,6 +601,26 @@ export function detectPlatform(headers: string[]): Platform {
   const ymMatches = lowerHeaders.filter((h) => YOURMEMBERSHIP_MAP[h]).length;
   if (ymMatches >= 3) return "yourmembership";
 
+  // Hivebrite
+  const hbMatches = lowerHeaders.filter((h) => HIVEBRITE_MAP[h]).length;
+  if (hbMatches >= 3) return "hivebrite";
+
+  // ClubExpress
+  const ceMatches = lowerHeaders.filter((h) => CLUBEXPRESS_MAP[h]).length;
+  if (ceMatches >= 3) return "clubexpress";
+
+  // Neon CRM
+  const ncMatches = lowerHeaders.filter((h) => NEONCRM_MAP[h]).length;
+  if (ncMatches >= 3) return "neoncrm";
+
+  // Glue Up
+  const guMatches = lowerHeaders.filter((h) => GLUEUP_MAP[h]).length;
+  if (guMatches >= 3) return "glueup";
+
+  // MemberPlanet
+  const mpMatches = lowerHeaders.filter((h) => MEMBERPLANET_MAP[h]).length;
+  if (mpMatches >= 3) return "memberplanet";
+
   return "generic";
 }
 
@@ -424,36 +631,46 @@ const PLATFORM_MAPS: Record<string, Record<string, ColumnMapping>> = {
   wildapricot: WILDAPRICOT_MAP,
   growthzone: GROWTHZONE_MAP,
   yourmembership: YOURMEMBERSHIP_MAP,
+  hivebrite: HIVEBRITE_MAP,
+  clubexpress: CLUBEXPRESS_MAP,
+  neoncrm: NEONCRM_MAP,
+  glueup: GLUEUP_MAP,
+  memberplanet: MEMBERPLANET_MAP,
 };
 
 /**
  * Auto-map columns based on detected platform or generic fuzzy matching.
+ * Returns both the mapping and per-column confidence scores.
  */
 export function autoMapColumns(
   headers: string[],
   platform: Platform
-): Record<string, ColumnMapping> {
+): { mapping: Record<string, ColumnMapping>; confidence: Record<string, "exact" | "high" | "medium" | "low"> } {
   const map = PLATFORM_MAPS[platform];
   if (map) {
     const mapping: Record<string, ColumnMapping> = {};
+    const confidence: Record<string, "exact" | "high" | "medium" | "low"> = {};
     for (const header of headers) {
       const normalized = header.toLowerCase().trim();
       if (map[normalized]) {
         mapping[header] = map[normalized];
+        confidence[header] = "exact"; // Platform-specific maps are exact matches
       }
     }
-    return mapping;
+    return { mapping, confidence };
   }
 
-  // Generic: use fuzzy pattern matching
+  // Generic: use fuzzy pattern matching with confidence
   return genericAutoMap(headers);
 }
 
 /**
  * Fuzzy auto-map for unknown platforms using regex patterns.
+ * Returns confidence based on pattern priority.
  */
-function genericAutoMap(headers: string[]): Record<string, ColumnMapping> {
+function genericAutoMap(headers: string[]): { mapping: Record<string, ColumnMapping>; confidence: Record<string, "exact" | "high" | "medium" | "low"> } {
   const mapping: Record<string, ColumnMapping> = {};
+  const confidence: Record<string, "exact" | "high" | "medium" | "low"> = {};
   const usedTargets = new Set<string>();
 
   // Sort by priority descending so higher-priority patterns win
@@ -467,13 +684,15 @@ function genericAutoMap(headers: string[]): Record<string, ColumnMapping> {
       const normalized = header.trim();
       if (pattern.patterns.some((p) => p.test(normalized))) {
         mapping[header] = { target: pattern.target, entity: pattern.entity };
+        // Map priority to confidence level
+        confidence[header] = pattern.priority >= 9 ? "high" : pattern.priority >= 6 ? "medium" : "low";
         usedTargets.add(pattern.target);
         break;
       }
     }
   }
 
-  return mapping;
+  return { mapping, confidence };
 }
 
 // ─── Record type detection ─────────────────────────────────
@@ -511,8 +730,8 @@ export function analyzeData(
   rows: Record<string, string>[]
 ): ImportPreview {
   const platform = detectPlatform(headers);
-  const mapping = autoMapColumns(headers, platform);
-  return analyzeWithMapping(headers, rows, mapping, platform);
+  const { mapping, confidence } = autoMapColumns(headers, platform);
+  return analyzeWithMapping(headers, rows, mapping, platform, confidence);
 }
 
 /**
@@ -522,7 +741,8 @@ export function analyzeWithMapping(
   headers: string[],
   rows: Record<string, string>[],
   mapping: Record<string, ColumnMapping>,
-  platform?: Platform
+  platform?: Platform,
+  existingConfidence?: Record<string, "exact" | "high" | "medium" | "low">
 ): ImportPreview {
   const detectedPlatform = platform || detectPlatform(headers);
 
@@ -568,6 +788,12 @@ export function analyzeWithMapping(
   const mappedCount = Object.keys(mapping).length;
   const unmappedColumns = headers.filter((h) => !mapping[h]);
 
+  // Use existing confidence or default to empty
+  const confidence = existingConfidence || {};
+
+  // Run validation
+  const validation = validateImportData(headers, rows, mapping);
+
   return {
     platform: detectedPlatform,
     totalRows: rows.length,
@@ -582,6 +808,8 @@ export function analyzeWithMapping(
     mapping,
     mappedCount,
     unmappedColumns,
+    confidence,
+    validation,
   };
 }
 
@@ -648,6 +876,174 @@ export function parseMemberType(memberType: string): {
 
   return { name, interval, price, isContact };
 }
+
+// ─── Robust date parsing ────────────────────────────────
+
+const DATE_FORMATS: { regex: RegExp; parse: (m: RegExpMatchArray) => Date }[] = [
+  // ISO: 2024-01-15, 2024-01-15T00:00:00
+  { regex: /^(\d{4})-(\d{1,2})-(\d{1,2})/, parse: (m) => new Date(+m[1], +m[2] - 1, +m[3]) },
+  // US: 01/15/2024, 1/15/2024, 01-15-2024
+  { regex: /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/, parse: (m) => new Date(+m[3], +m[1] - 1, +m[2]) },
+  // US short year: 01/15/24
+  { regex: /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2})$/, parse: (m) => {
+    const yr = +m[3] + (+m[3] > 50 ? 1900 : 2000);
+    return new Date(yr, +m[1] - 1, +m[2]);
+  }},
+  // Month name: Jan 15, 2024 / January 15 2024 / 15-Jan-2024
+  { regex: /^(\d{1,2})[/\-.\s](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*[/\-.\s,]*(\d{4})$/i,
+    parse: (m) => new Date(`${m[2]} ${m[1]}, ${m[3]}`) },
+  { regex: /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*[\s\-.,]+(\d{1,2})[\s\-.,]+(\d{4})$/i,
+    parse: (m) => new Date(`${m[1]} ${m[2]}, ${m[3]}`) },
+  // Year only: 2024
+  { regex: /^(\d{4})$/, parse: (m) => new Date(+m[1], 0, 1) },
+];
+
+/**
+ * Parse a date string using multiple common formats.
+ * Returns null if no format matches or the result is invalid.
+ */
+export function smartParseDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  const trimmed = dateStr.trim();
+  if (!trimmed) return null;
+
+  for (const fmt of DATE_FORMATS) {
+    const match = trimmed.match(fmt.regex);
+    if (match) {
+      const d = fmt.parse(match);
+      if (!isNaN(d.getTime()) && d.getFullYear() > 1900 && d.getFullYear() < 2100) {
+        return d;
+      }
+    }
+  }
+
+  // Final fallback: native Date constructor
+  const fallback = new Date(trimmed);
+  if (!isNaN(fallback.getTime()) && fallback.getFullYear() > 1900 && fallback.getFullYear() < 2100) {
+    return fallback;
+  }
+
+  return null;
+}
+
+/**
+ * Check if a date string is parseable.
+ */
+export function isValidDateString(dateStr: string): boolean {
+  return smartParseDate(dateStr) !== null;
+}
+
+// ─── Email validation ──────────────────────────────────
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+export function isValidEmail(email: string): boolean {
+  return EMAIL_REGEX.test(email.trim());
+}
+
+// ─── Pre-import validation ─────────────────────────────
+
+/**
+ * Validate all rows against the current mapping. Returns a report with
+ * invalid emails, unparseable dates, missing required fields, and duplicate emails.
+ */
+export function validateImportData(
+  headers: string[],
+  rows: Record<string, string>[],
+  mapping: Record<string, ColumnMapping>
+): ValidationReport {
+  const issues: ValidationIssue[] = [];
+  const emailIndex = new Map<string, number[]>(); // lowercase email -> row numbers
+
+  const emailCol = headers.find((h) => mapping[h]?.target === "email");
+  const dateTargets = ["joinDate", "expirationDate", "renewalDate", "paymentDate"];
+  const dateCols = dateTargets
+    .map((t) => ({ target: t, header: headers.find((h) => mapping[h]?.target === t) }))
+    .filter((d): d is { target: string; header: string } => !!d.header);
+
+  const hasNameMapping = Object.values(mapping).some(
+    (m) => m.target === "firstName" || m.target === "lastName" || m.target === "displayName" || m.target === "fullName"
+  );
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rowNum = i + 2; // 1-based + header row
+
+    // Validate email
+    if (emailCol) {
+      const email = (row[emailCol] || "").trim();
+      if (email && !isValidEmail(email)) {
+        issues.push({
+          row: rowNum, column: emailCol, field: "email",
+          value: email, issue: "invalid_email",
+          message: `Invalid email format: "${email}"`,
+        });
+      }
+      if (email) {
+        const lower = email.toLowerCase();
+        if (!emailIndex.has(lower)) emailIndex.set(lower, []);
+        emailIndex.get(lower)!.push(rowNum);
+      }
+    }
+
+    // Validate dates
+    for (const { target, header } of dateCols) {
+      const val = (row[header] || "").trim();
+      if (val && !isValidDateString(val)) {
+        issues.push({
+          row: rowNum, column: header, field: target,
+          value: val, issue: "invalid_date",
+          message: `Unparseable date: "${val}"`,
+        });
+      }
+    }
+
+    // Check required fields (name or email should exist for standalone records)
+    if (hasNameMapping || emailCol) {
+      const hasName = Object.entries(mapping).some(([h, m]) => {
+        if (m.target === "firstName" || m.target === "lastName" || m.target === "displayName" || m.target === "fullName") {
+          return (row[h] || "").trim() !== "";
+        }
+        return false;
+      });
+      const hasEmail = emailCol ? (row[emailCol] || "").trim() !== "" : false;
+      if (!hasName && !hasEmail) {
+        issues.push({
+          row: rowNum, column: "", field: "name/email",
+          value: "", issue: "missing_required",
+          message: "Row has no name or email — may import as \"Unknown\"",
+        });
+      }
+    }
+  }
+
+  // Duplicate emails within file
+  const duplicateEmails: { email: string; rows: number[] }[] = [];
+  for (const [email, rowNums] of emailIndex) {
+    if (rowNums.length > 1) {
+      duplicateEmails.push({ email, rows: rowNums });
+      for (const rowNum of rowNums) {
+        issues.push({
+          row: rowNum, column: emailCol || "", field: "email",
+          value: email, issue: "duplicate_email_in_file",
+          message: `Duplicate email "${email}" appears in rows ${rowNums.join(", ")}`,
+        });
+      }
+    }
+  }
+
+  return {
+    issues,
+    duplicateEmails,
+    totalIssues: issues.length,
+    invalidEmails: issues.filter((i) => i.issue === "invalid_email").length,
+    invalidDates: issues.filter((i) => i.issue === "invalid_date").length,
+    missingRequired: issues.filter((i) => i.issue === "missing_required").length,
+    duplicateCount: duplicateEmails.length,
+  };
+}
+
+// ─── Member type / tier parsing ────────────────────────
 
 /**
  * Deduplicate member types into unique tiers.

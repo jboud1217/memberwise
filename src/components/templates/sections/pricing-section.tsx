@@ -27,12 +27,12 @@ export function PricingSection({
     <section className="py-16 px-6">
       <div className="mx-auto max-w-6xl">
         {heading && (
-          <h2 className="mb-3 text-center text-3xl font-bold text-[var(--foreground)]">
+          <h2 className="mb-3 text-center text-3xl font-bold text-[var(--foreground)]" data-editable-text="heading">
             {heading}
           </h2>
         )}
         {subheading && (
-          <p className="mb-10 text-center text-lg text-[var(--muted-foreground)]">
+          <p className="mb-10 text-center text-lg text-[var(--muted-foreground)]" data-editable-text="subheading">
             {subheading}
           </p>
         )}
@@ -53,33 +53,35 @@ export function PricingSection({
                   ? "border-[var(--primary)] bg-[var(--primary)]/5 shadow-lg ring-1 ring-[var(--primary)]"
                   : "border-[var(--border)] bg-[var(--card)]"
               }`}
+              data-array-item="tiers"
+              data-item-index={i}
             >
               {tier.highlighted && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--primary)] px-3 py-0.5 text-xs font-medium text-white">
                   Popular
                 </span>
               )}
-              <h3 className="text-lg font-semibold text-[var(--card-foreground)]">
+              <h3 className="text-lg font-semibold text-[var(--card-foreground)]" data-editable-text={`tiers.${i}.name`}>
                 {tier.name}
               </h3>
               <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-[var(--foreground)]">
+                <span className="text-4xl font-bold text-[var(--foreground)]" data-editable-text={`tiers.${i}.price`}>
                   {tier.price}
                 </span>
                 {tier.period && (
-                  <span className="text-sm text-[var(--muted-foreground)]">
+                  <span className="text-sm text-[var(--muted-foreground)]" data-editable-text={`tiers.${i}.period`}>
                     /{tier.period}
                   </span>
                 )}
               </div>
               {tier.description && (
-                <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+                <p className="mt-2 text-sm text-[var(--muted-foreground)]" data-editable-text={`tiers.${i}.description`}>
                   {tier.description}
                 </p>
               )}
               <ul className="mt-6 flex-1 space-y-3">
                 {tier.features.map((feature, j) => (
-                  <li key={j} className="flex items-start gap-2 text-sm text-[var(--card-foreground)]">
+                  <li key={j} className="flex items-start gap-2 text-sm text-[var(--card-foreground)]" data-editable-text={`tiers.${i}.features.${j}`}>
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-[var(--primary)]" />
                     {feature}
                   </li>
@@ -87,10 +89,11 @@ export function PricingSection({
               </ul>
               {tier.ctaText && (
                 <div className="mt-6">
-                  <a href={tier.ctaLink || "#"} className="block">
+                  <a href={tier.ctaLink || "#"} className="block" data-editable-link={`tiers.${i}.ctaLink`} data-link-text-path={`tiers.${i}.ctaText`}>
                     <Button
                       className="w-full"
                       variant={tier.highlighted ? "default" : "outline"}
+                      data-editable-text={`tiers.${i}.ctaText`}
                     >
                       {tier.ctaText}
                     </Button>

@@ -33,12 +33,11 @@ export default function LoginPage() {
     const result = await signIn("credentials", {
       email: data.email,
       password: data.password,
-      organizationSlug: data.organizationSlug,
       redirect: false,
     });
 
     if (result?.error) {
-      setError("Invalid email, password, or organization");
+      setError("Invalid email or password");
       setLoading(false);
     } else {
       router.push("/dashboard");
@@ -75,19 +74,6 @@ export default function LoginPage() {
         )}
 
         <div className="space-y-1.5">
-          <Label htmlFor="organizationSlug" className="text-sm font-medium">Organization</Label>
-          <Input
-            id="organizationSlug"
-            placeholder="your-org-slug"
-            className="h-11"
-            {...register("organizationSlug")}
-          />
-          {errors.organizationSlug && (
-            <p className="text-xs text-red-500 mt-1">{errors.organizationSlug.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-1.5">
           <Label htmlFor="email" className="text-sm font-medium">Email</Label>
           <Input id="email" type="email" placeholder="jane@example.com" className="h-11" {...register("email")} />
           {errors.email && (
@@ -108,7 +94,7 @@ export default function LoginPage() {
           )}
         </div>
 
-        <Button type="submit" className="w-full h-11 gap-2 rounded-xl text-sm" disabled={loading}>
+        <Button type="submit" className="w-full h-11 gap-2 rounded-xl text-sm bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-[0_2px_8px_rgba(99,102,241,0.3)] hover:shadow-[0_4px_16px_rgba(99,102,241,0.4)] transition-all duration-200 active:scale-[0.98]" disabled={loading}>
           {loading ? (
             <>
               <Spinner className="h-4 w-4" />

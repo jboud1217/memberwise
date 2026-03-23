@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { tenantPrisma } from "@/lib/prisma-tenant";
 import { getRevenueStats } from "@/actions/payments";
@@ -6,12 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { Users, UserCheck, UserX, UserPlus, ContactRound, ArrowUpRight, TrendingUp, TrendingDown } from "lucide-react";
 import Link from "next/link";
+import { AIInsightsCard } from "./ai-insights";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+export const metadata: Metadata = { title: "Analytics" };
+
 export default async function AnalyticsPage() {
   const session = await auth();
-  if (!session?.user?.organizationId) return null;
+  if (!session?.user?.organizationId) redirect("/login");
   const db = tenantPrisma(prisma, session.user.organizationId);
 
   const [totalMembers, activeMembers, lapsedMembers, suspendedMembers, prospects, totalContacts, revenue] =
@@ -167,6 +172,9 @@ export default async function AnalyticsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* AI Insights */}
+        <AIInsightsCard />
 
         {/* Payment methods */}
         <Card className="lg:col-span-2">

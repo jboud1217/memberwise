@@ -1,12 +1,16 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { DomainSetup } from "./domain-setup";
 
 const CNAME_TARGET = "proxy.memberwise.com";
 
+export const metadata: Metadata = { title: "Domain" };
+
 export default async function DomainSettingsPage() {
   const session = await auth();
-  if (!session?.user?.organizationId) return null;
+  if (!session?.user?.organizationId) redirect("/login");
 
   const org = await prisma.organization.findUnique({
     where: { id: session.user.organizationId },

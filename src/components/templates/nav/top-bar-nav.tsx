@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, CreditCard, Users, UserCircle, LogOut } from "lucide-react";
+import { Home, CreditCard, Users, UserCircle, LogOut, FileText, Clock } from "lucide-react";
 
 const navigation = [
   { name: "Home", href: "/portal", icon: Home },
   { name: "Dues", href: "/portal/dues", icon: CreditCard },
   { name: "Directory", href: "/portal/directory", icon: Users },
+  { name: "Documents", href: "/portal/documents", icon: FileText },
+  { name: "Volunteer", href: "/portal/volunteer", icon: Clock },
   { name: "Profile", href: "/portal/profile", icon: UserCircle },
 ];
 

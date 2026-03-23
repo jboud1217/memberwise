@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { tenantPrisma } from "@/lib/prisma-tenant";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, Lock } from "lucide-react";
+
+export const metadata: Metadata = { title: "Member Directory" };
 
 export default async function PortalDirectoryPage({
   searchParams,

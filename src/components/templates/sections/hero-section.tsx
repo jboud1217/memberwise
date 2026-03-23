@@ -16,8 +16,9 @@ export function HeroSection({
   ctaText,
   ctaLink,
   backgroundImage,
+  backgroundPosition,
   size,
-}: HeroSectionProps) {
+}: HeroSectionProps & { backgroundPosition?: string }) {
   const isSmall = size === "small";
   const isLarge = size === "large";
 
@@ -31,10 +32,14 @@ export function HeroSection({
           ? {
               backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.6)), url(${backgroundImage})`,
               backgroundSize: "cover",
-              backgroundPosition: "center",
+              backgroundPosition: backgroundPosition || "center",
             }
           : undefined
       }
+      {...(backgroundImage
+        ? { "data-draggable-bg": "true", "data-bg-position": backgroundPosition || "center", "data-editable-image": "backgroundImage" }
+        : { "data-editable-image": "backgroundImage" }
+      )}
     >
       <div className="relative z-10 mx-auto max-w-3xl px-6">
         <h1
@@ -42,6 +47,7 @@ export function HeroSection({
             isSmall ? "text-3xl" : "text-4xl sm:text-5xl lg:text-6xl"
           }`}
           style={backgroundImage ? { color: "#ffffff" } : { color: "var(--foreground)" }}
+          data-editable-text="heading"
         >
           {heading}
         </h1>
@@ -53,14 +59,15 @@ export function HeroSection({
                 ? { color: "rgba(255,255,255,0.9)" }
                 : { color: "var(--muted-foreground)" }
             }
+            data-editable-text="subheading"
           >
             {subheading}
           </p>
         )}
         {ctaText && ctaLink && (
           <div className="mt-8">
-            <a href={ctaLink}>
-              <Button size="lg">
+            <a href={ctaLink} data-editable-link="ctaLink" data-link-text-path="ctaText">
+              <Button size="lg" data-editable-text="ctaText">
                 {ctaText}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>

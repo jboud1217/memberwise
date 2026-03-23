@@ -9,6 +9,8 @@ const navigation = [
   { name: "Home", href: "/portal" },
   { name: "Dues", href: "/portal/dues" },
   { name: "Directory", href: "/portal/directory" },
+  { name: "Documents", href: "/portal/documents" },
+  { name: "Volunteer", href: "/portal/volunteer" },
   { name: "Profile", href: "/portal/profile" },
 ];
 

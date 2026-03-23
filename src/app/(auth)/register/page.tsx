@@ -544,13 +544,13 @@ export default function RegisterPage() {
                 <CornerDownLeft className="h-3 w-3" />
                 Enter
               </span>
-              <Button type="button" onClick={nextStep} size="lg" className="gap-2 min-w-[140px] rounded-xl">
+              <Button type="button" onClick={nextStep} size="lg" className="gap-2 min-w-[140px] rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-[0_2px_8px_rgba(99,102,241,0.3)] hover:shadow-[0_4px_16px_rgba(99,102,241,0.4)] transition-all duration-200 active:scale-[0.98]">
                 Continue
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           ) : (
-            <Button type="submit" size="lg" className="gap-2 min-w-[160px] rounded-xl" disabled={loading}>
+            <Button type="submit" size="lg" className="gap-2 min-w-[160px] rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-[0_2px_8px_rgba(99,102,241,0.3)] hover:shadow-[0_4px_16px_rgba(99,102,241,0.4)] transition-all duration-200 active:scale-[0.98]" disabled={loading}>
               {loading ? (
                 <>
                   <Spinner className="h-4 w-4" />

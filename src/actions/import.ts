@@ -9,13 +9,8 @@ import {
   getMappedValue,
   mapStatus,
   parseMemberType,
+  smartParseDate,
 } from "@/lib/import-utils";
-
-function tryParseDate(dateStr: string): Date | null {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? null : d;
-}
 
 export async function createImportJob(fileName: string) {
   const session = await auth();
@@ -138,10 +133,10 @@ export async function importMembers(
           zip: get("zip") || get("zipPreferred") || null,
           country: get("country") || get("countryPreferred") || null,
           // Dates
-          joinDate: tryParseDate(get("joinDate")),
-          expirationDate: tryParseDate(get("expirationDate")),
-          renewalDate: tryParseDate(get("renewalDate")),
-          memberSince: tryParseDate(get("joinDate") || get("createdDate")),
+          joinDate: smartParseDate(get("joinDate")),
+          expirationDate: smartParseDate(get("expirationDate")),
+          renewalDate: smartParseDate(get("renewalDate")),
+          memberSince: smartParseDate(get("joinDate") || get("createdDate")),
           // Legacy IDs
           legacyId: get("legacyId") || null,
           legacyOrganizationId: get("legacyOrganizationId") || null,
@@ -187,7 +182,7 @@ export async function importMembers(
               status: "COMPLETED",
               method: "OTHER",
               description: `Imported dues${get("duesYearsPaid") ? ` (${get("duesYearsPaid")} years)` : ""}`,
-              paidAt: tryParseDate(get("paymentDate") || get("postingDate")),
+              paidAt: smartParseDate(get("paymentDate") || get("postingDate")),
             },
           });
         }

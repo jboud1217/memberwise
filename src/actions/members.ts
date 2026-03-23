@@ -33,6 +33,7 @@ export async function getMembers({
   sortOrder?: string;
 }) {
   const { db } = await getTenantPrisma();
+  pageSize = Math.min(pageSize, 100);
 
   const where: Record<string, unknown> = {};
   if (search) {

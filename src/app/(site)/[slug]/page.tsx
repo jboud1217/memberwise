@@ -8,6 +8,10 @@ export default async function DynamicSitePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+
+  // Member directory is only available in the authenticated portal, not the public site
+  if (slug === "directory") notFound();
+
   const doc = await getSiteDoc();
   const page = doc?.pages.find((p) => p.slug === slug);
 

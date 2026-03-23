@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getMember } from "@/actions/members";
@@ -63,6 +64,8 @@ function timeAgo(date: Date): string {
   if (days < 7) return `${days}d ago`;
   return formatDate(date);
 }
+
+export const metadata: Metadata = { title: "Member Details" };
 
 export default async function MemberDetailPage({
   params,
@@ -133,7 +136,7 @@ export default async function MemberDetailPage({
       </div>
 
       {/* Summary cards */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 stagger-children">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3.5">
           <p className="text-xs text-[var(--muted-foreground)]">Contacts</p>
           <p className="mt-0.5 text-xl font-bold">{member.contacts.length}</p>
@@ -274,7 +277,7 @@ export default async function MemberDetailPage({
                   </TableHeader>
                   <TableBody>
                     {member.payments.map((payment) => (
-                      <TableRow key={payment.id}>
+                      <TableRow key={payment.id} className="transition-colors hover:bg-[var(--accent)]/50">
                         <TableCell className="text-sm">{payment.paidAt ? formatDate(payment.paidAt) : "—"}</TableCell>
                         <TableCell className="text-sm font-medium">{formatCurrency(payment.amount)}</TableCell>
                         <TableCell>

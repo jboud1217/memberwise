@@ -26,6 +26,7 @@ export default function TiersPage() {
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadTiers();
@@ -39,6 +40,7 @@ export default function TiersPage() {
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setSaving(true);
     const form = new FormData(e.currentTarget);
     await createTier({
       name: form.get("name") as string,
@@ -49,6 +51,7 @@ export default function TiersPage() {
       isActive: true,
       sortOrder: tiers.length,
     });
+    setSaving(false);
     setShowCreate(false);
     loadTiers();
   }
@@ -81,9 +84,9 @@ export default function TiersPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
           {tiers.map((tier) => (
-            <Card key={tier.id}>
+            <Card key={tier.id} className="transition-all hover:shadow-[var(--shadow-sm)] hover:border-[var(--ring)]/20">
               <CardHeader className="flex flex-row items-start justify-between space-y-0">
                 <div>
                   <CardTitle className="text-lg">{tier.name}</CardTitle>
@@ -153,8 +156,8 @@ export default function TiersPage() {
             </div>
           </DialogContent>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
-            <Button type="submit">Create Tier</Button>
+            <Button type="button" variant="outline" onClick={() => setShowCreate(false)} disabled={saving}>Cancel</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Creating..." : "Create Tier"}</Button>
           </DialogFooter>
         </form>
       </Dialog>

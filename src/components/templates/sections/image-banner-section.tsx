@@ -36,7 +36,7 @@ export function ImageBannerSection({
       : "items-center justify-center text-center";
 
   const content = imageUrl ? (
-    <div className={`relative ${heightClass} w-full overflow-hidden`}>
+    <div className={`relative ${heightClass} w-full overflow-hidden`} data-editable-image="imageUrl">
       <img
         src={imageUrl}
         alt={alt}
@@ -44,7 +44,7 @@ export function ImageBannerSection({
       />
       {overlayText && (
         <div className={`absolute inset-0 flex bg-black/40 ${positionClass}`}>
-          <p className="max-w-2xl text-2xl font-bold text-white sm:text-4xl">
+          <p className="max-w-2xl text-2xl font-bold text-white sm:text-4xl" data-editable-text="overlayText">
             {overlayText}
           </p>
         </div>
@@ -53,6 +53,7 @@ export function ImageBannerSection({
   ) : (
     <div
       className={`flex ${heightClass} w-full items-center justify-center bg-[var(--muted)] border border-dashed border-[var(--border)]`}
+      data-editable-image="imageUrl"
     >
       <div className="text-center">
         <ImageIcon className="mx-auto h-12 w-12 text-[var(--muted-foreground)]/40" />
@@ -64,9 +65,9 @@ export function ImageBannerSection({
   return (
     <section className="py-4 px-6">
       <div className="mx-auto max-w-6xl overflow-hidden rounded-[var(--radius)]">
-        {linkUrl ? <a href={linkUrl}>{content}</a> : content}
+        {linkUrl ? <a href={linkUrl} data-editable-link="linkUrl">{content}</a> : content}
         {caption && (
-          <p className="mt-2 text-center text-sm text-[var(--muted-foreground)] italic">
+          <p className="mt-2 text-center text-sm text-[var(--muted-foreground)] italic" data-editable-text="caption">
             {caption}
           </p>
         )}

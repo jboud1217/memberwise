@@ -31,12 +31,12 @@ export function VideoEmbedSection({
     <section className="py-16 px-6">
       <div className="mx-auto max-w-4xl">
         {heading && (
-          <h2 className="mb-4 text-center text-3xl font-bold text-[var(--foreground)]">
+          <h2 className="mb-4 text-center text-3xl font-bold text-[var(--foreground)]" data-editable-text="heading">
             {heading}
           </h2>
         )}
         {description && (
-          <p className="mb-8 text-center text-lg text-[var(--muted-foreground)]">
+          <p className="mb-8 text-center text-lg text-[var(--muted-foreground)]" data-editable-text="description">
             {description}
           </p>
         )}

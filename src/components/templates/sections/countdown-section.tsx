@@ -57,12 +57,12 @@ export function CountdownSection({
     <section className="py-16 px-6">
       <div className="mx-auto max-w-2xl text-center">
         {heading && (
-          <h2 className="mb-2 text-3xl font-bold text-[var(--foreground)]">
+          <h2 className="mb-2 text-3xl font-bold text-[var(--foreground)]" data-editable-text="heading">
             {heading}
           </h2>
         )}
         {subheading && (
-          <p className="mb-8 text-lg text-[var(--muted-foreground)]">{subheading}</p>
+          <p className="mb-8 text-lg text-[var(--muted-foreground)]" data-editable-text="subheading">{subheading}</p>
         )}
         {!targetDate ? (
           <div className="rounded-[var(--radius)] border border-dashed border-[var(--border)] bg-[var(--muted)] p-12">
@@ -79,13 +79,16 @@ export function CountdownSection({
             <CountdownUnit value={timeLeft.seconds} label="Seconds" />
           </div>
         ) : (
-          <p className="text-lg text-[var(--muted-foreground)]">{expiredMessage}</p>
+          <p className="text-lg text-[var(--muted-foreground)]" data-editable-text="expiredMessage">{expiredMessage}</p>
         )}
         {ctaText && ctaLink && (
           <div className="mt-8">
             <a
               href={ctaLink}
               className="inline-flex items-center rounded-[var(--radius)] bg-[var(--primary)] px-6 py-3 text-sm font-medium text-[var(--primary-foreground)] shadow-sm transition-all hover:opacity-90"
+              data-editable-link="ctaLink"
+              data-link-text-path="ctaText"
+              data-editable-text="ctaText"
             >
               {ctaText}
             </a>

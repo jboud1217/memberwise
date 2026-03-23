@@ -11,29 +11,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        organizationSlug: { label: "Organization", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
         const email = credentials.email as string;
         const password = credentials.password as string;
-        const slug = credentials.organizationSlug as string;
 
-        // Find the organization
-        const org = await prisma.organization.findUnique({
-          where: { slug },
-        });
-        if (!org) return null;
-
-        // Find the user in this organization
-        const user = await prisma.user.findUnique({
-          where: {
-            email_organizationId: {
-              email,
-              organizationId: org.id,
-            },
-          },
+        // Find the user by email (include org for session data)
+        const user = await prisma.user.findFirst({
+          where: { email },
+          include: { organization: { select: { id: true, slug: true } } },
         });
 
         if (!user || !user.hashedPassword) return null;
@@ -46,8 +34,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           email: user.email,
           role: user.role,
-          organizationId: org.id,
-          organizationSlug: org.slug,
+          organizationId: user.organization.id,
+          organizationSlug: user.organization.slug,
         };
       },
     }),

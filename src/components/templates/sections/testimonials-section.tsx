@@ -16,7 +16,7 @@ export function TestimonialsSection({ heading, items }: TestimonialsSectionProps
     <section className="bg-[var(--muted)] py-16 px-6">
       <div className="mx-auto max-w-6xl">
         {heading && (
-          <h2 className="mb-12 text-center text-3xl font-bold text-[var(--foreground)]">
+          <h2 className="mb-12 text-center text-3xl font-bold text-[var(--foreground)]" data-editable-text="heading">
             {heading}
           </h2>
         )}
@@ -25,15 +25,17 @@ export function TestimonialsSection({ heading, items }: TestimonialsSectionProps
             <div
               key={i}
               className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-6"
+              data-array-item="items"
+              data-item-index={i}
             >
               <Quote className="mb-3 h-6 w-6 text-[var(--primary)]/40" />
-              <p className="mb-4 text-sm leading-relaxed text-[var(--card-foreground)]">
+              <p className="mb-4 text-sm leading-relaxed text-[var(--card-foreground)]" data-editable-text={`items.${i}.quote`}>
                 &ldquo;{item.quote}&rdquo;
               </p>
               <div>
-                <p className="text-sm font-medium text-[var(--card-foreground)]">{item.author}</p>
+                <p className="text-sm font-medium text-[var(--card-foreground)]" data-editable-text={`items.${i}.author`}>{item.author}</p>
                 {item.role && (
-                  <p className="text-xs text-[var(--muted-foreground)]">{item.role}</p>
+                  <p className="text-xs text-[var(--muted-foreground)]" data-editable-text={`items.${i}.role`}>{item.role}</p>
                 )}
               </div>
             </div>

@@ -263,7 +263,7 @@ export function MembersTable({ members, tiers, sortBy, sortOrder, isEmpty }: Mem
             members.map((member) => (
               <TableRow
                 key={member.id}
-                className={`group cursor-pointer transition-colors ${selected.has(member.id) ? "bg-[var(--primary)]/[0.04]" : ""}`}
+                className={`group cursor-pointer transition-colors hover:bg-[var(--accent)]/50 ${selected.has(member.id) ? "bg-[var(--primary)]/[0.04]" : ""}`}
                 onClick={(e) => {
                   // Don't navigate if clicking checkbox or link
                   if ((e.target as HTMLElement).closest("a, input, button")) return;

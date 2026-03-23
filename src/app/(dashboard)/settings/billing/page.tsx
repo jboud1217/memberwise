@@ -1,13 +1,17 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CreditCard, ExternalLink } from "lucide-react";
 
+export const metadata: Metadata = { title: "Billing Settings" };
+
 export default async function BillingSettingsPage() {
   const session = await auth();
-  if (!session?.user?.organizationId) return null;
+  if (!session?.user?.organizationId) redirect("/login");
 
   const org = await prisma.organization.findUnique({
     where: { id: session.user.organizationId },

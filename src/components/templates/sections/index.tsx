@@ -22,6 +22,7 @@ import { SocialFeedSection } from "./social-feed-section";
 import { GoogleReviewsSection } from "./google-reviews-section";
 import { GoogleMapSection } from "./google-map-section";
 import { CalendarWidgetSection } from "./calendar-widget-section";
+import { InteractiveCalendarSection } from "./interactive-calendar-section";
 import { NewsletterSignupSection } from "./newsletter-signup-section";
 import { CountdownSection } from "./countdown-section";
 import { SocialLinksSection } from "./social-links-section";
@@ -53,6 +54,7 @@ const SECTION_MAP: Record<string, React.ComponentType<any>> = {
   "google-reviews": GoogleReviewsSection,
   "google-map": GoogleMapSection,
   "calendar-widget": CalendarWidgetSection,
+  "interactive-calendar": InteractiveCalendarSection,
   "newsletter-signup": NewsletterSignupSection,
   countdown: CountdownSection,
   "social-links": SocialLinksSection,

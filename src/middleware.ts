@@ -23,7 +23,7 @@ function getSubdomainSlug(host: string): string | null {
   return null;
 }
 
-const PROTECTED_PREFIXES = ["/dashboard", "/members", "/contacts", "/tiers", "/billing", "/email", "/analytics", "/settings", "/portal", "/onboarding", "/api"];
+const PROTECTED_PREFIXES = ["/dashboard", "/members", "/contacts", "/tiers", "/billing", "/email", "/analytics", "/settings", "/portal", "/onboarding", "/api", "/donations", "/documents", "/volunteers", "/committees", "/forms", "/reports", "/assets"];
 
 export default auth((req) => {
   const host = req.headers.get("host") || "";

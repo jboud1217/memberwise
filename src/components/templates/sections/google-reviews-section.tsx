@@ -45,7 +45,7 @@ export function GoogleReviewsSection({
       <section className="py-16 px-6">
         <div className="mx-auto max-w-4xl">
           {heading && (
-            <h2 className="mb-8 text-center text-3xl font-bold text-[var(--foreground)]">
+            <h2 className="mb-8 text-center text-3xl font-bold text-[var(--foreground)]" data-editable-text="heading">
               {heading}
             </h2>
           )}
@@ -59,13 +59,13 @@ export function GoogleReviewsSection({
     <section className="py-16 px-6">
       <div className="mx-auto max-w-4xl">
         {heading && (
-          <h2 className="mb-4 text-center text-3xl font-bold text-[var(--foreground)]">
+          <h2 className="mb-4 text-center text-3xl font-bold text-[var(--foreground)]" data-editable-text="heading">
             {heading}
           </h2>
         )}
         {overallRating && (
           <div className="mb-8 flex items-center justify-center gap-3">
-            <span className="text-4xl font-bold text-[var(--foreground)]">{overallRating}</span>
+            <span className="text-4xl font-bold text-[var(--foreground)]" data-editable-text="overallRating">{overallRating}</span>
             <div>
               <StarRating rating={Math.round(parseFloat(overallRating))} />
               {totalReviews && (
@@ -82,13 +82,15 @@ export function GoogleReviewsSection({
               <div
                 key={i}
                 className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-5"
+                data-array-item="reviews"
+                data-item-index={i}
               >
                 <StarRating rating={review.rating} />
-                <p className="mt-3 text-sm text-[var(--card-foreground)]">{review.text}</p>
+                <p className="mt-3 text-sm text-[var(--card-foreground)]" data-editable-text={`reviews.${i}.text`}>{review.text}</p>
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="text-xs font-medium text-[var(--foreground)]">{review.author}</span>
+                  <span className="text-xs font-medium text-[var(--foreground)]" data-editable-text={`reviews.${i}.author`}>{review.author}</span>
                   {review.date && (
-                    <span className="text-[10px] text-[var(--muted-foreground)]">{review.date}</span>
+                    <span className="text-[10px] text-[var(--muted-foreground)]" data-editable-text={`reviews.${i}.date`}>{review.date}</span>
                   )}
                 </div>
               </div>

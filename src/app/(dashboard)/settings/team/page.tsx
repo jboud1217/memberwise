@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { tenantPrisma } from "@/lib/prisma-tenant";
 import { getPendingInvites } from "@/actions/team";
@@ -7,9 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { TeamActions } from "./team-actions";
 
+export const metadata: Metadata = { title: "Team" };
+
 export default async function TeamPage() {
   const session = await auth();
-  if (!session?.user?.organizationId) return null;
+  if (!session?.user?.organizationId) redirect("/login");
   const db = tenantPrisma(prisma, session.user.organizationId);
 
   const [users, pendingInvites] = await Promise.all([

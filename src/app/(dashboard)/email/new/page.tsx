@@ -9,26 +9,46 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { Send, Save, ArrowLeft, Users, Tag, Mail, AlertCircle } from "lucide-react";
-import { createCampaign, sendCampaign } from "@/actions/email-campaigns";
+import {
+  Send,
+  Save,
+  ArrowLeft,
+  Users,
+  Mail,
+  AlertCircle,
+  Sparkles,
+  Loader2,
+  Clock,
+  CalendarDays,
+} from "lucide-react";
+import { createCampaign, sendCampaign, scheduleCampaign } from "@/actions/email-campaigns";
+import { aiDraftEmail } from "@/actions/ai";
 import Link from "next/link";
 
 export default function NewCampaignPage() {
   const router = useRouter();
   const [sending, setSending] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  // Controlled form state for AI integration
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [tierFilter, setTierFilter] = useState("");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("09:00");
+  const [showSchedule, setShowSchedule] = useState(false);
+
+  async function handleSend() {
+    if (!subject.trim()) {
+      setError("Subject is required");
+      return;
+    }
     setError("");
     setSending(true);
-
-    const form = new FormData(e.currentTarget);
-    const subject = form.get("subject") as string;
-    const body = form.get("body") as string;
-    const statusFilter = form.get("statusFilter") as string;
-    const tierFilter = form.get("tierFilter") as string;
 
     const result = await createCampaign({ subject, body, statusFilter, tierFilter });
     if ("error" in result) {
@@ -37,26 +57,26 @@ export default function NewCampaignPage() {
       return;
     }
 
-    await sendCampaign(result.campaign.id);
+    const sendResult = await sendCampaign(result.campaign.id);
     setSending(false);
+
+    if ("error" in sendResult) {
+      setError(sendResult.error);
+      return;
+    }
+
     router.push("/email");
   }
 
-  async function handleSaveDraft(e: React.MouseEvent) {
-    e.preventDefault();
+  async function handleSaveDraft() {
+    if (!subject.trim()) {
+      setError("Subject is required");
+      return;
+    }
     setSaving(true);
     setError("");
 
-    const form = (e.target as HTMLElement).closest("form") as HTMLFormElement;
-    const formData = new FormData(form);
-
-    const result = await createCampaign({
-      subject: formData.get("subject") as string,
-      body: (formData.get("body") as string) || "",
-      statusFilter: formData.get("statusFilter") as string,
-      tierFilter: formData.get("tierFilter") as string,
-    });
-
+    const result = await createCampaign({ subject, body, statusFilter, tierFilter });
     if ("error" in result) {
       setError(result.error || "Failed to save draft");
       setSaving(false);
@@ -67,9 +87,57 @@ export default function NewCampaignPage() {
     router.push("/email");
   }
 
+  async function handleSchedule() {
+    if (!subject.trim()) {
+      setError("Subject is required");
+      return;
+    }
+    if (!scheduleDate) {
+      setError("Please select a date to schedule");
+      return;
+    }
+    setError("");
+    setScheduling(true);
+
+    const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
+
+    const result = await createCampaign({
+      subject,
+      body,
+      statusFilter,
+      tierFilter,
+      scheduledAt,
+    });
+
+    if ("error" in result) {
+      setError(result.error || "Failed to schedule campaign");
+      setScheduling(false);
+      return;
+    }
+
+    setScheduling(false);
+    router.push("/email");
+  }
+
+  async function handleAiDraft() {
+    setAiLoading(true);
+    try {
+      const purpose = subject || "monthly member newsletter";
+      const result = await aiDraftEmail(purpose);
+      if (result.subject) setSubject(result.subject);
+      if (result.body) setBody(result.body);
+    } catch {
+      setError("AI draft failed. Check your API key.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  // Get minimum date (today)
+  const today = new Date().toISOString().split("T")[0];
+
   return (
     <div>
-      {/* Back link */}
       <Link
         href="/email"
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
@@ -80,7 +148,9 @@ export default function NewCampaignPage() {
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">New Email Campaign</h1>
-        <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">Compose and send an email to your members</p>
+        <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
+          Compose and send an email to your members
+        </p>
       </div>
 
       {error && (
@@ -90,82 +160,208 @@ export default function NewCampaignPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div className="grid gap-5 lg:grid-cols-3">
-          {/* Main content */}
-          <div className="space-y-5 lg:col-span-2">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                  <Mail className="h-4 w-4 text-[var(--muted-foreground)]" />
-                  Message
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="subject">Subject Line</Label>
-                  <Input id="subject" name="subject" required placeholder="e.g. March Newsletter" className="text-base" />
-                </div>
-                <div className="space-y-2">
+      <div className="grid gap-5 lg:grid-cols-3">
+        {/* Main content */}
+        <div className="space-y-5 lg:col-span-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                <Mail className="h-4 w-4 text-[var(--muted-foreground)]" />
+                Message
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="subject">Subject Line</Label>
+                <Input
+                  id="subject"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  required
+                  placeholder="e.g. March Newsletter — What's New"
+                  className="text-base"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
                   <Label htmlFor="body">Body</Label>
-                  <Textarea
-                    id="body"
-                    name="body"
-                    required
-                    rows={16}
-                    placeholder="Write your email content here..."
-                    className="min-h-[300px] text-sm leading-relaxed"
-                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 text-violet-600 hover:bg-violet-50 hover:text-violet-700"
+                    disabled={aiLoading}
+                    onClick={handleAiDraft}
+                  >
+                    {aiLoading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    {aiLoading ? "Drafting..." : "AI Draft"}
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <Textarea
+                  id="body"
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  required
+                  rows={16}
+                  placeholder="Write your email content here... (HTML supported)"
+                  className="min-h-[300px] text-sm leading-relaxed"
+                />
+                <p className="text-[10px] text-[var(--muted-foreground)]">
+                  Tip: Enter a subject line first, then click AI Draft to auto-generate the email body
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Sidebar */}
-          <div className="space-y-5">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                  <Users className="h-4 w-4 text-[var(--muted-foreground)]" />
-                  Recipients
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="statusFilter">Member Status</Label>
-                  <Select id="statusFilter" name="statusFilter">
-                    <option value="">All members</option>
-                    <option value="ACTIVE">Active only</option>
-                    <option value="LAPSED">Lapsed only</option>
-                    <option value="PROSPECT">Prospects only</option>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tierFilter">Membership Tier</Label>
-                  <Select id="tierFilter" name="tierFilter">
-                    <option value="">All tiers</option>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Sidebar */}
+        <div className="space-y-4">
+          {/* Recipients */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                <Users className="h-4 w-4 text-[var(--muted-foreground)]" />
+                Recipients
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="statusFilter" className="text-xs">Member Status</Label>
+                <Select
+                  id="statusFilter"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="text-sm"
+                >
+                  <option value="">All members</option>
+                  <option value="ACTIVE">Active only</option>
+                  <option value="LAPSED">Lapsed only</option>
+                  <option value="PROSPECT">Prospects only</option>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="tierFilter" className="text-xs">Membership Tier</Label>
+                <Select
+                  id="tierFilter"
+                  value={tierFilter}
+                  onChange={(e) => setTierFilter(e.target.value)}
+                  className="text-sm"
+                >
+                  <option value="">All tiers</option>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Actions */}
-            <div className="space-y-2">
-              <Button type="submit" className="w-full" disabled={sending}>
-                {sending ? <Spinner className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-                Send Campaign
-              </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={handleSaveDraft} disabled={saving}>
-                {saving ? <Spinner className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-                Save as Draft
-              </Button>
-              <Button type="button" variant="ghost" className="w-full" onClick={() => router.push("/email")}>
-                Cancel
-              </Button>
-            </div>
+          {/* Schedule */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                <Clock className="h-4 w-4 text-[var(--muted-foreground)]" />
+                Schedule
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!showSchedule ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowSchedule(true)}
+                >
+                  <CalendarDays className="h-4 w-4" />
+                  Schedule for Later
+                </Button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="scheduleDate" className="text-xs">Date</Label>
+                    <Input
+                      id="scheduleDate"
+                      type="date"
+                      value={scheduleDate}
+                      onChange={(e) => setScheduleDate(e.target.value)}
+                      min={today}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="scheduleTime" className="text-xs">Time</Label>
+                    <Input
+                      id="scheduleTime"
+                      type="time"
+                      value={scheduleTime}
+                      onChange={(e) => setScheduleTime(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      className="flex-1"
+                      onClick={handleSchedule}
+                      disabled={scheduling}
+                    >
+                      {scheduling ? (
+                        <Spinner className="h-4 w-4" />
+                      ) : (
+                        <CalendarDays className="h-4 w-4" />
+                      )}
+                      {scheduling ? "Scheduling..." : "Schedule"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setShowSchedule(false);
+                        setScheduleDate("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Actions */}
+          <div className="space-y-2">
+            <Button
+              type="button"
+              className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+              onClick={handleSend}
+              disabled={sending}
+            >
+              {sending ? <Spinner className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+              {sending ? "Sending..." : "Send Now"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleSaveDraft}
+              disabled={saving}
+            >
+              {saving ? <Spinner className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+              {saving ? "Saving..." : "Save as Draft"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              onClick={() => router.push("/email")}
+            >
+              Cancel
+            </Button>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

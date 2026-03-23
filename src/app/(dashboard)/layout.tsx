@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { AIAssistant } from "@/components/ai/ai-assistant";
 
 export default async function DashboardLayout({
   children,
@@ -40,6 +41,7 @@ export default async function DashboardLayout({
         }}
       />
       <DashboardShell siteUrl={siteUrl}>{children}</DashboardShell>
+      <AIAssistant />
     </div>
   );
 }

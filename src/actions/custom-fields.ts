@@ -123,8 +123,17 @@ export async function deleteCustomField(fieldId: string) {
 export async function reorderCustomFields(fieldIds: string[]) {
   const session = await auth();
   if (!session?.user?.organizationId) throw new Error("Not authenticated");
+  const orgId = session.user.organizationId;
+
+  // Verify all fields belong to this organization before updating
+  const fields = await prisma.customField.findMany({
+    where: { id: { in: fieldIds }, organizationId: orgId },
+    select: { id: true },
+  });
+  const validIds = new Set(fields.map((f) => f.id));
 
   for (let i = 0; i < fieldIds.length; i++) {
+    if (!validIds.has(fieldIds[i])) continue;
     await prisma.customField.update({
       where: { id: fieldIds[i] },
       data: { sortOrder: i },

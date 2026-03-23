@@ -1,4 +1,5 @@
 import { Code } from "lucide-react";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface CustomHtmlSectionProps {
   heading?: string;
@@ -10,12 +11,12 @@ export function CustomHtmlSection({ heading, html }: CustomHtmlSectionProps) {
     <section className="py-16 px-6">
       <div className="mx-auto max-w-5xl">
         {heading && (
-          <h2 className="mb-8 text-center text-3xl font-bold text-[var(--foreground)]">
+          <h2 className="mb-8 text-center text-3xl font-bold text-[var(--foreground)]" data-editable-text="heading">
             {heading}
           </h2>
         )}
         {html ? (
-          <div dangerouslySetInnerHTML={{ __html: html }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }} />
         ) : (
           <div className="flex items-center justify-center rounded-[var(--radius)] border border-dashed border-[var(--border)] bg-[var(--muted)] p-12">
             <div className="text-center">

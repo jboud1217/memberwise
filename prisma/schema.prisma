@@ -122,6 +122,10 @@ model Organization {
   duesReminderDays       Int      @default(30)
   directoryEnabled       Boolean  @default(false)
 
+  // Email settings
+  emailProvider          String?  // "resend" | "sendgrid" | "mailgun" | "postmark" | "ses"
+  emailSettings          Json?    // { apiKey, senderEmail, senderName, region?, domain? }
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -137,6 +141,19 @@ model Organization {
   teamInvites    TeamInvite[]
   customFields   CustomField[]
   activityLogs   ActivityLog[]
+  events              Event[]
+  eventRegistrations  EventRegistration[]
+  automations         Automation[]
+  notifications       Notification[]
+  documentFolders     DocumentFolder[]
+  documents           Document[]
+  donationCampaigns   DonationCampaign[]
+  donations           Donation[]
+  volunteerOpportunities VolunteerOpportunity[]
+  volunteerLogs       VolunteerLog[]
+  committees          Committee[]
+  forms               Form[]
+  formResponses       FormResponse[]
 }
 
 // ─── Auth Models ────────────────────────────────────────
@@ -244,6 +261,10 @@ model Member {
 
   notes String?
 
+  // Engagement
+  engagementScore  Int      @default(0) // 0-100
+  lastEngagedAt    DateTime?
+
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -254,7 +275,12 @@ model Member {
   doNotEmail Boolean @default(false)
   doNotMail  Boolean @default(false)
 
-  customFieldValues CustomFieldValue[]
+  customFieldValues  CustomFieldValue[]
+  eventRegistrations EventRegistration[]
+  donations          Donation[]
+  volunteerLogs      VolunteerLog[]
+  committeeMemberships CommitteeMember[]
+  formResponses      FormResponse[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -285,7 +311,9 @@ model Contact {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  customFieldValues CustomFieldValue[]
+  customFieldValues  CustomFieldValue[]
+  eventRegistrations EventRegistration[]
+  committeeMemberships CommitteeMember[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -476,6 +504,593 @@ model ActivityLog {
 
   @@index([organizationId])
   @@index([organizationId, createdAt])
+}
+
+// ─── Events ───────────────────────────────────────────
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+enum EventFormat {
+  IN_PERSON
+  VIRTUAL
+  HYBRID
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  WAITLISTED
+  CHECKED_IN
+  CANCELLED
+  NO_SHOW
+}
+
+enum RSVPType {
+  REQUIRED
+  OPTIONAL
+  NONE
+}
+
+model Event {
+  id          String      @id @default(cuid())
+  title       String
+  slug        String
+  description String?     @db.Text
+  body        String?     @db.Text // Rich content / agenda
+
+  status      EventStatus @default(DRAFT)
+  format      EventFormat @default(IN_PERSON)
+
+  // Schedule
+  startDate   DateTime
+  endDate     DateTime
+  timezone    String      @default("America/New_York")
+  allDay      Boolean     @default(false)
+
+  // Recurrence (iCal RRULE string, e.g. "FREQ=MONTHLY;BYDAY=1TU")
+  recurrenceRule String?
+
+  // Location
+  venueName   String?
+  address1    String?
+  address2    String?
+  city        String?
+  state       String?
+  zip         String?
+  country     String?
+  virtualUrl  String?     // Zoom/Teams/Meet link
+
+  // Capacity & waitlist
+  capacity      Int?
+  waitlistEnabled Boolean @default(false)
+  registrationCount Int   @default(0)
+  waitlistCount     Int   @default(0)
+
+  // Registration settings
+  rsvpType          RSVPType @default(REQUIRED)
+  registrationOpens DateTime?
+  registrationCloses DateTime?
+  allowGuests       Boolean  @default(false)
+  maxGuestsPerRegistration Int @default(0)
+  requireApproval   Boolean  @default(false)
+
+  // Pricing
+  isFree       Boolean @default(true)
+  memberPrice  Int?    // cents
+  nonMemberPrice Int?  // cents
+  earlyBirdPrice Int?  // cents
+  earlyBirdDeadline DateTime?
+
+  // Display
+  coverImage   String?
+  tags         String[]
+  isFeatured   Boolean @default(false)
+
+  // Contact
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+
+  // Check-in
+  checkedInCount Int @default(0)
+
+  // Tier restriction (only certain tiers can register)
+  allowedTierIds String[]
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  ticketTypes    EventTicketType[]
+  registrations  EventRegistration[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, startDate])
+}
+
+model EventTicketType {
+  id          String  @id @default(cuid())
+  name        String  // e.g. "General Admission", "VIP", "Member-Only"
+  description String?
+  price       Int     @default(0) // cents
+  capacity    Int?
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  // Member-only pricing
+  memberPrice Int?    // cents — null means same as price
+
+  soldCount   Int     @default(0)
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  registrations EventRegistration[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventId])
+}
+
+model EventRegistration {
+  id     String             @id @default(cuid())
+  status RegistrationStatus @default(REGISTERED)
+
+  // Guest info (for non-member registrations)
+  guestName  String?
+  guestEmail String?
+  guestPhone String?
+  guestCount Int     @default(0)
+
+  // Payment
+  amountPaid Int     @default(0) // cents
+  stripePaymentId String?
+
+  // Check-in
+  checkedInAt DateTime?
+
+  // Custom responses (form fields, dietary needs, etc.)
+  customResponses Json?
+
+  // Notes
+  notes String?
+
+  // Cancellation
+  cancelledAt DateTime?
+  cancelReason String?
+
+  memberId  String?
+  member    Member?  @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  ticketTypeId String?
+  ticketType   EventTicketType? @relation(fields: [ticketTypeId], references: [id], onDelete: SetNull)
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventId])
+  @@index([memberId])
+  @@index([organizationId])
+}
+
+// ─── Automations ──────────────────────────────────────
+
+enum AutomationTrigger {
+  MEMBER_JOINED
+  MEMBER_LAPSED
+  RENEWAL_DUE
+  PAYMENT_RECEIVED
+  STATUS_CHANGED
+  SCHEDULED
+  MANUAL
+}
+
+enum AutomationActionType {
+  SEND_EMAIL
+  UPDATE_STATUS
+  NOTIFY_ADMIN
+  WAIT
+}
+
+enum AutomationStatus {
+  ACTIVE
+  PAUSED
+  DRAFT
+}
+
+model Automation {
+  id          String              @id @default(cuid())
+  name        String
+  description String?
+  trigger     AutomationTrigger
+  triggerConfig Json?             // { daysBeforeRenewal: 30, fromStatus: "ACTIVE", toStatus: "LAPSED" }
+  status      AutomationStatus    @default(DRAFT)
+
+  steps AutomationStep[]
+  runs  AutomationRun[]
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+}
+
+model AutomationStep {
+  id        String               @id @default(cuid())
+  action    AutomationActionType
+  config    Json                 // { templateId, subject, body, delayMinutes, statusTo, message }
+  sortOrder Int                  @default(0)
+
+  automationId String
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([automationId])
+}
+
+model AutomationRun {
+  id          String    @id @default(cuid())
+  status      String    @default("running") // running | completed | failed | paused
+  currentStep Int       @default(0)
+  nextRunAt   DateTime? // When the next step should execute (after a wait)
+  error       String?
+
+  memberId String?
+  contactId String?
+
+  automationId String
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  organizationId String
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([automationId])
+  @@index([organizationId])
+  @@index([status, nextRunAt])
+}
+
+// ─── Notifications ────────────────────────────────────
+
+model Notification {
+  id       String  @id @default(cuid())
+  type     String  // renewal_due, member_joined, payment_received, automation_completed, campaign_sent
+  title    String
+  message  String
+  read     Boolean @default(false)
+  link     String? // e.g. /members/clxyz
+  metadata Json?
+
+  userId String? // null = broadcast to all org admins
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([organizationId, userId, read])
+  @@index([organizationId, createdAt])
+}
+
+// ─── Documents / Resource Library ─────────────────────
+
+model DocumentFolder {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  parentId    String?
+  parent      DocumentFolder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    DocumentFolder[] @relation("FolderTree")
+  sortOrder   Int     @default(0)
+
+  // Access control
+  isPublic    Boolean @default(false)
+  memberOnly  Boolean @default(true)
+  allowedTierIds String[]
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  documents Document[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([parentId])
+}
+
+model Document {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  fileName    String
+  fileUrl     String
+  fileSize    Int     @default(0)
+  mimeType    String?
+  version     Int     @default(1)
+
+  folderId String?
+  folder   DocumentFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  isPublic      Boolean @default(false)
+  memberOnly    Boolean @default(true)
+  downloadCount Int     @default(0)
+
+  uploadedById String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([folderId])
+}
+
+// ─── Donations / Fundraising ──────────────────────────
+
+enum DonationStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum DonationType {
+  ONE_TIME
+  RECURRING
+}
+
+model DonationCampaign {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  goalAmount  Int?
+  raisedAmount Int     @default(0)
+  isActive    Boolean  @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  coverImage  String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  donations Donation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model Donation {
+  id     String         @id @default(cuid())
+  amount Int
+  status DonationStatus @default(PENDING)
+  type   DonationType   @default(ONE_TIME)
+
+  donorName   String?
+  donorEmail  String?
+  isAnonymous Boolean @default(false)
+  message     String?
+
+  recurringInterval    String?
+  stripeSubscriptionId String?
+  stripePaymentId      String?
+  paidAt               DateTime?
+
+  memberId String?
+  member   Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
+  campaignId String?
+  campaign   DonationCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  receiptSent   Boolean   @default(false)
+  receiptSentAt DateTime?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([memberId])
+  @@index([campaignId])
+}
+
+// ─── Volunteer Management ─────────────────────────────
+
+model VolunteerOpportunity {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  location    String?
+  date        DateTime?
+  startTime   DateTime?
+  endTime     DateTime?
+  spotsAvailable Int?
+  skills      String[]
+  isActive    Boolean  @default(true)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  logs VolunteerLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model VolunteerLog {
+  id          String   @id @default(cuid())
+  hours       Float
+  date        DateTime
+  description String?
+  approved    Boolean  @default(false)
+  approvedById String?
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  opportunityId String?
+  opportunity   VolunteerOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([memberId])
+  @@index([opportunityId])
+}
+
+// ─── Committees / Groups ──────────────────────────────
+
+enum CommitteeRole {
+  CHAIR
+  VICE_CHAIR
+  SECRETARY
+  TREASURER
+  MEMBER
+}
+
+model Committee {
+  id          String  @id @default(cuid())
+  name        String
+  description String? @db.Text
+  purpose     String?
+  isActive    Boolean @default(true)
+
+  meetingSchedule String?
+  meetingLocation String?
+  meetingUrl      String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  members CommitteeMember[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model CommitteeMember {
+  id   String        @id @default(cuid())
+  role CommitteeRole @default(MEMBER)
+
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  committeeId String
+  committee   Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+
+  organizationId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([memberId, committeeId])
+  @@index([committeeId])
+  @@index([organizationId])
+}
+
+// ─── Forms / Surveys ──────────────────────────────────
+
+enum FormStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+model Form {
+  id          String     @id @default(cuid())
+  title       String
+  description String?    @db.Text
+  status      FormStatus @default(DRAFT)
+  slug        String
+
+  fields      Json
+  settings    Json?
+
+  maxResponses  Int?
+  responseCount Int      @default(0)
+  closesAt      DateTime?
+
+  formType    String     @default("general")
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  responses FormResponse[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+}
+
+model FormResponse {
+  id       String @id @default(cuid())
+  answers  Json
+
+  respondentName  String?
+  respondentEmail String?
+
+  memberId String?
+  member   Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
+  formId String
+  form   Form @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([formId])
+  @@index([organizationId])
 }
 
 // ─── Import ────────────────────────────────────────────

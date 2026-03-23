@@ -24,6 +24,7 @@ export async function getContacts({
   pageSize?: number;
 }) {
   const { db } = await getTenantPrisma();
+  pageSize = Math.min(pageSize, 100);
 
   const where: Record<string, unknown> = {};
   if (search) {

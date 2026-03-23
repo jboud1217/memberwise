@@ -20,7 +20,7 @@ export function FaqSection({ heading, items }: FaqSectionProps) {
     <section className="py-16 px-6">
       <div className="mx-auto max-w-3xl">
         {heading && (
-          <h2 className="mb-8 text-center text-3xl font-bold text-[var(--foreground)]">
+          <h2 className="mb-8 text-center text-3xl font-bold text-[var(--foreground)]" data-editable-text="heading">
             {heading}
           </h2>
         )}
@@ -29,13 +29,15 @@ export function FaqSection({ heading, items }: FaqSectionProps) {
             <div
               key={i}
               className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)]"
+              data-array-item="items"
+              data-item-index={i}
             >
               <button
                 type="button"
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
                 className="flex w-full items-center justify-between p-4 text-left"
               >
-                <span className="text-sm font-medium text-[var(--card-foreground)]">
+                <span className="text-sm font-medium text-[var(--card-foreground)]" data-editable-text={`items.${i}.question`}>
                   {item.question}
                 </span>
                 <ChevronDown
@@ -46,7 +48,7 @@ export function FaqSection({ heading, items }: FaqSectionProps) {
               </button>
               {openIndex === i && (
                 <div className="border-t border-[var(--border)] px-4 py-3">
-                  <p className="text-sm text-[var(--muted-foreground)]">{item.answer}</p>
+                  <p className="text-sm text-[var(--muted-foreground)]" data-editable-text={`items.${i}.answer`}>{item.answer}</p>
                 </div>
               )}
             </div>

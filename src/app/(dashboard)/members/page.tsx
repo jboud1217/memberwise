@@ -1,11 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getMembers } from "@/actions/members";
 import { getTiers } from "@/actions/tiers";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Plus, Upload, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Upload, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { MembersTable } from "./members-table";
 import { ExportButton } from "./export-button";
+import { SearchFilterBar } from "./search-filter-bar";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface PageParams {
   search?: string;
@@ -45,6 +48,8 @@ function getPageNumbers(current: number, total: number): (number | "ellipsis")[]
   pages.push(total);
   return pages;
 }
+
+export const metadata: Metadata = { title: "Members" };
 
 export default async function MembersPage({
   searchParams,
@@ -94,32 +99,39 @@ export default async function MembersPage({
         </div>
       </div>
 
+      {/* Search & Filter Bar */}
+      <SearchFilterBar
+        tiers={tiers.map((t) => ({ id: t.id, name: t.name }))}
+        currentSearch={params.search}
+        currentStatus={params.status}
+        currentTierId={params.tierId}
+        total={total}
+      />
+
       {/* Table */}
       <Card className="overflow-hidden">
         {members.length === 0 && !params.search && !params.status && !params.tierName ? (
-          <div className="flex flex-col items-center justify-center p-12 text-center">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--muted)]">
-              <Plus className="h-5 w-5 text-[var(--muted-foreground)]" />
-            </div>
-            <p className="font-medium">No members yet</p>
-            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-              Get started by adding a member or importing from CSV.
-            </p>
-            <div className="mt-4 flex gap-2">
-              <Link href="/members/import">
-                <Button variant="outline" size="sm">
-                  <Upload className="h-4 w-4" />
-                  Import CSV
-                </Button>
-              </Link>
-              <Link href="/members/new">
-                <Button size="sm">
-                  <Plus className="h-4 w-4" />
-                  Add Member
-                </Button>
-              </Link>
-            </div>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="No members yet"
+            description="Get started by adding your first member or importing your existing membership list from a CSV file."
+            actions={[
+              { label: "Import CSV", href: "/members/import", icon: Upload, variant: "outline" },
+              { label: "Add Member", href: "/members/new", icon: Plus },
+            ]}
+            tips={[
+              "Import from Wild Apricot, MemberClicks, or any CSV file",
+              "Add members one at a time with the Add Member button",
+              "Set up membership tiers first for better organization",
+            ]}
+          />
+        ) : members.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No members found"
+            description="No members match your current search or filter criteria. Try adjusting your filters."
+            compact
+          />
         ) : (
           <MembersTable
             members={members}

@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { tenantPrisma } from "@/lib/prisma-tenant";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,9 +11,11 @@ import { CreditCard, DollarSign, TrendingUp, Receipt, ArrowUpRight } from "lucid
 import { RecordPaymentButton } from "./record-payment";
 import Link from "next/link";
 
+export const metadata: Metadata = { title: "Billing" };
+
 export default async function BillingPage() {
   const session = await auth();
-  if (!session?.user?.organizationId) return null;
+  if (!session?.user?.organizationId) redirect("/login");
   const db = tenantPrisma(prisma, session.user.organizationId);
 
   const [recentPayments, members] = await Promise.all([
@@ -42,7 +46,7 @@ export default async function BillingPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 stagger-children">
         {[
           { label: "Total Revenue", value: formatCurrency(totalRevenue), icon: DollarSign, gradient: "from-emerald-500 to-teal-600" },
           { label: "Payments", value: String(recentPayments.length), icon: Receipt, gradient: "from-indigo-500 to-purple-600" },
@@ -82,7 +86,7 @@ export default async function BillingPage() {
             </TableHeader>
             <TableBody>
               {recentPayments.map((payment) => (
-                <TableRow key={payment.id} className="group">
+                <TableRow key={payment.id} className="group transition-colors hover:bg-[var(--accent)]/50">
                   <TableCell>
                     <Link href={`/members/${payment.member.id}`} className="inline-flex items-center gap-1.5 font-medium text-[var(--foreground)] hover:text-[var(--primary)] transition-colors">
                       {payment.member.displayName}

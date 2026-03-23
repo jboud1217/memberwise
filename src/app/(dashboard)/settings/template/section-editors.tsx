@@ -501,7 +501,7 @@ export const SECTION_TYPE_INFO: Record<string, SectionTypeInfo> = {
   // Interactive / Data
   "contact-form": { label: "Contact Form", description: "Form with configurable fields", icon: "📋", category: "interactive" },
   "events-list": { label: "Events", description: "Upcoming event listings", icon: "📅", category: "data" },
-  "directory-grid": { label: "Member Directory", description: "Searchable member grid", icon: "👥", category: "data" },
+  "interactive-calendar": { label: "Event Calendar", description: "Interactive calendar with event details", icon: "🗓️", category: "interactive" },
   faq: { label: "FAQ", description: "Accordion Q&A section", icon: "❓", category: "interactive" },
 
   // Widgets
@@ -1162,6 +1162,18 @@ function ContactFormEditor({ props, onChange }: { props: Props; onChange: OnChan
   const allFields = ["name", "email", "phone", "company", "subject", "message"];
   return (
     <div className="space-y-3">
+      <Field label="Heading">
+        <Input value={(props.heading as string) || ""} onChange={(e) => onChange({ ...props, heading: e.target.value })} className="text-xs" placeholder="Contact Us" />
+      </Field>
+      <Field label="Subheading">
+        <Input value={(props.subheading as string) || ""} onChange={(e) => onChange({ ...props, subheading: e.target.value })} className="text-xs" placeholder="Get in touch with us" />
+      </Field>
+      <Field label="Button Text">
+        <Input value={(props.buttonText as string) || ""} onChange={(e) => onChange({ ...props, buttonText: e.target.value })} className="text-xs" placeholder="Send Message" />
+      </Field>
+      <Field label="Success Message">
+        <Input value={(props.successMessage as string) || ""} onChange={(e) => onChange({ ...props, successMessage: e.target.value })} className="text-xs" placeholder="Thank you for your message!" />
+      </Field>
       <Field label="Form Fields">
         <div className="space-y-1.5">
           {allFields.map((field) => (
@@ -1192,6 +1204,9 @@ function EventsListEditor({ props, onChange }: { props: Props; onChange: OnChang
       <Field label="Section Heading">
         <Input value={(props.heading as string) || ""} onChange={(e) => onChange({ ...props, heading: e.target.value })} className="text-xs" />
       </Field>
+      <Field label="Subheading">
+        <Input value={(props.subheading as string) || ""} onChange={(e) => onChange({ ...props, subheading: e.target.value })} className="text-xs" placeholder="Optional description" />
+      </Field>
       <label className="flex items-center gap-2 text-xs">
         <input type="checkbox" checked={(props.showPast as boolean) || false} onChange={(e) => onChange({ ...props, showPast: e.target.checked })} className="h-3.5 w-3.5 rounded" />
         Show past events
@@ -1208,6 +1223,9 @@ function EventsListEditor({ props, onChange }: { props: Props; onChange: OnChang
 function DirectoryGridEditor({ props, onChange }: { props: Props; onChange: OnChange }) {
   return (
     <div className="space-y-3">
+      <Field label="Heading">
+        <Input value={(props.heading as string) || ""} onChange={(e) => onChange({ ...props, heading: e.target.value })} className="text-xs" placeholder="Member Directory" />
+      </Field>
       <label className="flex items-center gap-2 text-xs">
         <input type="checkbox" checked={(props.showSearch as boolean) !== false} onChange={(e) => onChange({ ...props, showSearch: e.target.checked })} className="h-3.5 w-3.5 rounded" />
         Show search bar
@@ -1416,6 +1434,30 @@ function CalendarWidgetEditor({ props, onChange }: { props: Props; onChange: OnC
   );
 }
 
+// ─── Interactive Calendar Editor ─────────────────────
+
+function InteractiveCalendarEditor({ props, onChange }: { props: Props; onChange: OnChange }) {
+  return (
+    <div className="space-y-3">
+      <Field label="Section Heading">
+        <Input value={(props.heading as string) || ""} onChange={(e) => onChange({ ...props, heading: e.target.value })} placeholder="Event Calendar" className="text-xs" />
+      </Field>
+      <Field label="Subheading">
+        <Input value={(props.subheading as string) || ""} onChange={(e) => onChange({ ...props, subheading: e.target.value })} placeholder="Browse our upcoming and past events" className="text-xs" />
+      </Field>
+      <label className="flex items-center gap-2 text-xs">
+        <input type="checkbox" checked={(props.showPastEvents as boolean) !== false} onChange={(e) => onChange({ ...props, showPastEvents: e.target.checked })} className="h-3.5 w-3.5 rounded" />
+        Show past events section
+      </label>
+      <div className="rounded-md border border-[var(--border)] bg-[var(--muted)] p-3">
+        <p className="text-[10px] text-[var(--muted-foreground)]">
+          This section automatically displays published events from your Events module in an interactive monthly calendar. Click any event to see details. Past events show photos, future events show registration info.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Newsletter Signup Editor ───────────────────────
 
 function NewsletterSignupEditor({ props, onChange }: { props: Props; onChange: OnChange }) {
@@ -1540,6 +1582,7 @@ const EDITORS: Record<string, React.ComponentType<{ props: Props; onChange: OnCh
   "google-reviews": GoogleReviewsEditor,
   "google-map": GoogleMapEditor,
   "calendar-widget": CalendarWidgetEditor,
+  "interactive-calendar": InteractiveCalendarEditor,
   "newsletter-signup": NewsletterSignupEditor,
   countdown: CountdownEditor,
   "social-links": SocialLinksEditor,

@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { getSiteDoc } from "./get-site-doc";
 import { SitePageRenderer } from "@/components/templates/page-renderer";
 import { MarketingHome } from "@/components/marketing/home";
+
+export const metadata: Metadata = { title: "Home" };
 
 export default async function HomePage() {
   const headersList = await headers();

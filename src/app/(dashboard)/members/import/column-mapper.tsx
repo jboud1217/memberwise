@@ -99,6 +99,7 @@ interface ColumnMapperProps {
   mapping: Record<string, ColumnMapping>;
   sampleData: Record<string, string[]>;
   autoMappedColumns: Set<string>;
+  confidence?: Record<string, "exact" | "high" | "medium" | "low">;
   customFields?: CustomFieldOption[];
   onMappingChange: (header: string, value: string) => void;
   onAutoMap: () => void;
@@ -110,6 +111,7 @@ export function ColumnMapper({
   mapping,
   sampleData,
   autoMappedColumns,
+  confidence = {},
   customFields = [],
   onMappingChange,
   onAutoMap,
@@ -223,6 +225,7 @@ export function ColumnMapper({
                   mapping={mapping[header]}
                   sampleValues={sampleData[header] || []}
                   isAutoMapped={autoMappedColumns.has(header)}
+                  confidenceLevel={confidence[header]}
                   usedTargets={usedTargets}
                   currentHeader={header}
                   targetOptions={allTargetOptions}
@@ -285,11 +288,19 @@ export function ColumnMapper({
 
 // ─── Individual mapping row ────────────────────────────────
 
+const CONFIDENCE_STYLES: Record<string, { label: string; className: string }> = {
+  exact: { label: "exact", className: "bg-green-100 text-green-700" },
+  high: { label: "high", className: "bg-green-100 text-green-700" },
+  medium: { label: "likely", className: "bg-yellow-100 text-yellow-700" },
+  low: { label: "guess", className: "bg-orange-100 text-orange-700" },
+};
+
 function MappingRow({
   header,
   mapping,
   sampleValues,
   isAutoMapped,
+  confidenceLevel,
   usedTargets,
   currentHeader,
   targetOptions,
@@ -299,6 +310,7 @@ function MappingRow({
   mapping: ColumnMapping | undefined;
   sampleValues: string[];
   isAutoMapped: boolean;
+  confidenceLevel?: "exact" | "high" | "medium" | "low";
   usedTargets: Map<string, string>;
   currentHeader: string;
   targetOptions: { group: string; options: { value: string; label: string }[] }[];
@@ -328,7 +340,12 @@ function MappingRow({
           <span className="truncate text-sm font-medium" title={header}>
             {header}
           </span>
-          {isAutoMapped && (
+          {isAutoMapped && confidenceLevel && (
+            <span className={`flex-shrink-0 rounded px-1.5 py-0 text-[10px] font-medium ${CONFIDENCE_STYLES[confidenceLevel]?.className || "bg-gray-100 text-gray-600"}`}>
+              {CONFIDENCE_STYLES[confidenceLevel]?.label || "auto"}
+            </span>
+          )}
+          {isAutoMapped && !confidenceLevel && (
             <Badge variant="secondary" className="flex-shrink-0 px-1.5 py-0 text-[10px]">
               auto
             </Badge>

@@ -4,6 +4,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MemberForm } from "@/components/members/member-form";
 import { getMember, updateMember } from "@/actions/members";
+import { getTiers } from "@/actions/tiers";
 import type { MemberInput } from "@/lib/validators/member";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -12,11 +13,15 @@ export default function EditMemberPage() {
   const params = useParams();
   const memberId = params.memberId as string;
   const [member, setMember] = useState<Record<string, unknown> | null>(null);
+  const [tiers, setTiers] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getMember(memberId).then((m) => {
+    Promise.all([getMember(memberId), getTiers()]).then(([m, t]) => {
       setMember(m as Record<string, unknown> | null);
+      setTiers((t || []).map((tier: Record<string, unknown>) => ({ id: tier.id as string, name: tier.name as string })));
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
   }, [memberId]);
@@ -69,7 +74,7 @@ export default function EditMemberPage() {
           expirationDate: formatDateStr(member.expirationDate),
           notes: (member.notes as string) || undefined,
         }}
-        tiers={[]}
+        tiers={tiers}
         onSubmit={handleSubmit}
         submitLabel="Update Member"
       />

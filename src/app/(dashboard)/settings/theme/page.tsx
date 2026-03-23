@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = { title: "Theme" };
 
 /**
  * Theme editing is now part of the unified Site Builder.

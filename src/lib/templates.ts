@@ -33,6 +33,7 @@ export type SectionType =
   | "google-reviews"
   | "google-map"
   | "calendar-widget"
+  | "interactive-calendar"
   | "newsletter-signup"
   | "countdown"
   | "social-links"
@@ -183,29 +184,6 @@ export const TEMPLATES: LayoutTemplate[] = [
           },
         ],
       },
-      {
-        slug: "directory",
-        title: "Directory",
-        sections: [
-          {
-            id: "hero",
-            type: "hero",
-            props: {
-              heading: "Member Directory",
-              subheading: "Find and connect with fellow members.",
-              size: "small",
-            },
-          },
-          {
-            id: "directory-grid",
-            type: "directory-grid",
-            props: {
-              showSearch: true,
-              columns: 3,
-            },
-          },
-        ],
-      },
     ],
   },
   {
@@ -337,28 +315,12 @@ export const TEMPLATES: LayoutTemplate[] = [
           },
         ],
       },
-      {
-        slug: "directory",
-        title: "Directory",
-        sections: [
-          {
-            id: "hero",
-            type: "hero",
-            props: { heading: "Member Directory", subheading: "Connect with professionals in your field.", size: "small" },
-          },
-          {
-            id: "directory-grid",
-            type: "directory-grid",
-            props: { showSearch: true, columns: 4 },
-          },
-        ],
-      },
     ],
   },
   {
     id: "community-hub",
     name: "Community Hub",
-    description: "Events and directory focused layout for active communities",
+    description: "Events focused layout for active communities",
     previewImage: "/templates/community-hub-preview.svg",
     portalNavStyle: "top-bar",
     pages: [
@@ -475,22 +437,6 @@ export const TEMPLATES: LayoutTemplate[] = [
           },
         ],
       },
-      {
-        slug: "directory",
-        title: "Directory",
-        sections: [
-          {
-            id: "hero",
-            type: "hero",
-            props: { heading: "Community Directory", subheading: "Find and connect with your neighbors.", size: "small" },
-          },
-          {
-            id: "directory-grid",
-            type: "directory-grid",
-            props: { showSearch: true, columns: 3 },
-          },
-        ],
-      },
     ],
   },
   {
@@ -579,22 +525,6 @@ export const TEMPLATES: LayoutTemplate[] = [
             id: "events-list",
             type: "events-list",
             props: { showPast: false, limit: 6 },
-          },
-        ],
-      },
-      {
-        slug: "directory",
-        title: "Directory",
-        sections: [
-          {
-            id: "hero",
-            type: "hero",
-            props: { heading: "Directory", subheading: "Our members.", size: "small" },
-          },
-          {
-            id: "directory-grid",
-            type: "directory-grid",
-            props: { showSearch: true, columns: 3 },
           },
         ],
       },
@@ -733,22 +663,6 @@ export const TEMPLATES: LayoutTemplate[] = [
             id: "events-list",
             type: "events-list",
             props: { showPast: true, limit: 12 },
-          },
-        ],
-      },
-      {
-        slug: "directory",
-        title: "Directory",
-        sections: [
-          {
-            id: "hero",
-            type: "hero",
-            props: { heading: "Our Supporters", subheading: "The people who make our work possible.", size: "small" },
-          },
-          {
-            id: "directory-grid",
-            type: "directory-grid",
-            props: { showSearch: true, columns: 3 },
           },
         ],
       },
@@ -892,22 +806,6 @@ export const TEMPLATES: LayoutTemplate[] = [
             id: "events-list",
             type: "events-list",
             props: { showPast: true, limit: 20 },
-          },
-        ],
-      },
-      {
-        slug: "directory",
-        title: "Directory",
-        sections: [
-          {
-            id: "hero",
-            type: "hero",
-            props: { heading: "Member Directory", subheading: "Search for credentialed professionals in your area.", size: "small" },
-          },
-          {
-            id: "directory-grid",
-            type: "directory-grid",
-            props: { showSearch: true, columns: 4 },
           },
         ],
       },

@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { getDashboardStats } from "@/actions/dashboard";
 import { getRecentActivity } from "@/actions/activity";
+import { getEngagementSummary } from "@/actions/engagement";
+import { getSmartAlerts } from "@/actions/alerts";
 import { formatCurrency } from "@/lib/utils";
 import {
   Users,
@@ -24,6 +27,15 @@ import {
   Plus,
   TrendingUp,
   UserPlus,
+  Heart,
+  AlertTriangle,
+  Shield,
+  CalendarDays,
+  FileText,
+  PieChart,
+  HandHeart,
+  Command,
+  Info,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -60,11 +72,15 @@ function timeAgo(date: Date): string {
   return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+export const metadata: Metadata = { title: "Dashboard" };
+
 export default async function DashboardPage() {
   const session = await auth();
-  const [dashData, recentActivity] = await Promise.all([
+  const [dashData, recentActivity, engagement, smartAlerts] = await Promise.all([
     getDashboardStats(),
     getRecentActivity(10),
+    getEngagementSummary(),
+    getSmartAlerts().catch(() => []),
   ]);
 
   const stats = [
@@ -149,12 +165,12 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 stagger-children">
         {stats.map((stat) => (
           <Link
             key={stat.name}
             href={stat.href}
-            className="group relative flex items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-xs)] transition-all duration-200 hover:shadow-[var(--shadow-md)] hover:border-[var(--ring)]/30"
+            className="group relative flex items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-xs)] transition-all duration-200 hover:shadow-[var(--shadow-md)] hover:border-[var(--ring)]/30 hover:scale-[1.02] active:scale-[0.98]"
           >
             <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${stat.iconBg} shadow-sm`}>
               <stat.icon className="h-5 w-5 text-white" />
@@ -175,6 +191,43 @@ export default async function DashboardPage() {
         ))}
       </div>
 
+      {/* Smart Alerts */}
+      {smartAlerts.length > 0 && (
+        <div className="space-y-2">
+          {smartAlerts.slice(0, 3).map((alert) => {
+            const alertStyles = {
+              danger: "border-red-200 bg-red-50/70",
+              warning: "border-amber-200 bg-amber-50/70",
+              info: "border-blue-200 bg-blue-50/70",
+              success: "border-emerald-200 bg-emerald-50/70",
+            };
+            const iconStyles = {
+              danger: "text-red-600",
+              warning: "text-amber-600",
+              info: "text-blue-600",
+              success: "text-emerald-600",
+            };
+            const AlertIcon = alert.type === "danger" ? AlertTriangle : alert.type === "warning" ? AlertTriangle : Info;
+            return (
+              <Link
+                key={alert.id}
+                href={alert.href}
+                className={`group flex items-center gap-3 rounded-xl border px-4 py-3 transition-all hover:shadow-sm ${alertStyles[alert.type]}`}
+              >
+                <AlertIcon className={`h-5 w-5 shrink-0 ${iconStyles[alert.type]}`} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">{alert.title}</p>
+                  <p className="text-xs text-[var(--muted-foreground)] hidden sm:block">{alert.message}</p>
+                </div>
+                <span className="shrink-0 rounded-lg bg-white/60 px-3 py-1.5 text-xs font-medium transition-colors group-hover:bg-white">
+                  {alert.actionLabel} <ArrowRight className="ml-1 inline h-3 w-3" />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
       {/* Quick actions - mobile only */}
       <div className="grid grid-cols-2 gap-2 sm:hidden">
         <Link href="/members/new" className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-sm font-medium transition-colors hover:bg-[var(--accent)]">
@@ -185,6 +238,12 @@ export default async function DashboardPage() {
           <Mail className="h-4 w-4 text-purple-500" />
           Send Email
         </Link>
+      </div>
+
+      {/* Keyboard shortcut hint */}
+      <div className="hidden items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border)] bg-[var(--muted)]/30 py-2 text-xs text-[var(--muted-foreground)] sm:flex">
+        <Command className="h-3 w-3" />
+        <span>Press <kbd className="rounded border border-[var(--border)] bg-[var(--card)] px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd> to search, or use keyboard shortcuts to navigate</span>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -240,13 +299,123 @@ export default async function DashboardPage() {
             </div>
           )}
 
+          {/* Engagement Score + At Risk */}
+          {engagement.total > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {/* Engagement Score */}
+              <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-sm)]">
+                <div className="flex items-center gap-2 border-b border-[var(--border)] px-5 py-3.5">
+                  <Heart className="h-4 w-4 text-rose-500" />
+                  <h2 className="text-sm font-semibold">Engagement Score</h2>
+                </div>
+                <div className="px-5 py-4">
+                  <div className="flex items-center gap-4">
+                    <div className="relative flex h-20 w-20 shrink-0 items-center justify-center">
+                      <svg className="h-20 w-20 -rotate-90" viewBox="0 0 80 80">
+                        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" strokeWidth="6" />
+                        <circle
+                          cx="40" cy="40" r="34" fill="none"
+                          stroke={engagement.avgScore >= 60 ? "#10b981" : engagement.avgScore >= 30 ? "#f59e0b" : "#ef4444"}
+                          strokeWidth="6"
+                          strokeLinecap="round"
+                          strokeDasharray={`${(engagement.avgScore / 100) * 213.6} 213.6`}
+                        />
+                      </svg>
+                      <span className="absolute text-lg font-bold">{engagement.avgScore}</span>
+                    </div>
+                    <div className="flex-1 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                          High ({"\u226570"})
+                        </span>
+                        <span className="font-medium">{engagement.distribution.high}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-amber-500" />
+                          Medium (40–69)
+                        </span>
+                        <span className="font-medium">{engagement.distribution.medium}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-orange-500" />
+                          Low (20–39)
+                        </span>
+                        <span className="font-medium">{engagement.distribution.low}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-red-500" />
+                          At Risk (&lt;20)
+                        </span>
+                        <span className="font-medium">{engagement.distribution.atRisk}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* At Risk Members */}
+              <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-sm)]">
+                <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3.5">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    <h2 className="text-sm font-semibold">Churn Risk</h2>
+                  </div>
+                  {engagement.atRiskMembers.length > 0 && (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                      {engagement.distribution.atRisk} members
+                    </span>
+                  )}
+                </div>
+                <div className="divide-y divide-[var(--border)]">
+                  {engagement.atRiskMembers.length === 0 ? (
+                    <div className="flex items-center gap-2 px-5 py-6 text-center">
+                      <Shield className="h-8 w-8 text-emerald-500" />
+                      <div className="text-left">
+                        <p className="text-sm font-medium text-emerald-700">All members engaged</p>
+                        <p className="text-xs text-[var(--muted-foreground)]">No members at risk of churning</p>
+                      </div>
+                    </div>
+                  ) : (
+                    engagement.atRiskMembers.slice(0, 4).map((m) => (
+                      <Link
+                        key={m.id}
+                        href={`/members/${m.id}`}
+                        className="flex items-center justify-between px-5 py-2.5 transition-colors hover:bg-[var(--accent)]/50"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{m.displayName}</p>
+                          <p className="text-[10px] text-[var(--muted-foreground)]">
+                            {m.status} {m.lastEngagedAt ? `\u2022 Last active ${timeAgo(m.lastEngagedAt)}` : "\u2022 Never engaged"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-[10px] font-bold text-red-700">
+                            {m.engagementScore}
+                          </div>
+                        </div>
+                      </Link>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Quick links grid */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 stagger-children">
             {[
               { label: "Import CSV", href: "/members/import", icon: Upload, color: "text-blue-600", bg: "bg-blue-50" },
-              { label: "Analytics", href: "/analytics", icon: BarChart3, color: "text-emerald-600", bg: "bg-emerald-50" },
+              { label: "Create Event", href: "/events/create", icon: CalendarDays, color: "text-purple-600", bg: "bg-purple-50" },
               { label: "Site Builder", href: "/settings/template", icon: Globe, color: "text-rose-600", bg: "bg-rose-50" },
-              { label: "Team", href: "/settings/team", icon: Users, color: "text-violet-600", bg: "bg-violet-50" },
+              { label: "Reports", href: "/reports", icon: PieChart, color: "text-emerald-600", bg: "bg-emerald-50" },
+              { label: "Automations", href: "/automations", icon: Zap, color: "text-amber-600", bg: "bg-amber-50" },
+              { label: "Documents", href: "/documents", icon: FileText, color: "text-cyan-600", bg: "bg-cyan-50" },
+              { label: "Volunteers", href: "/volunteers", icon: HandHeart, color: "text-pink-600", bg: "bg-pink-50" },
+              { label: "Analytics", href: "/analytics", icon: BarChart3, color: "text-indigo-600", bg: "bg-indigo-50" },
             ].map((action) => (
               <Link
                 key={action.label}

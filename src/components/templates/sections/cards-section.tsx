@@ -32,12 +32,12 @@ export function CardsSection({
     <section className="py-16 px-6">
       <div className="mx-auto max-w-6xl">
         {heading && (
-          <h2 className="mb-3 text-center text-3xl font-bold text-[var(--foreground)]">
+          <h2 className="mb-3 text-center text-3xl font-bold text-[var(--foreground)]" data-editable-text="heading">
             {heading}
           </h2>
         )}
         {subheading && (
-          <p className="mb-10 text-center text-lg text-[var(--muted-foreground)]">
+          <p className="mb-10 text-center text-lg text-[var(--muted-foreground)]" data-editable-text="subheading">
             {subheading}
           </p>
         )}
@@ -46,9 +46,11 @@ export function CardsSection({
             <div
               key={i}
               className="group overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] transition-shadow hover:shadow-lg"
+              data-array-item="items"
+              data-item-index={i}
             >
               {card.image ? (
-                <div className="aspect-[16/10] overflow-hidden">
+                <div className="aspect-[16/10] overflow-hidden" data-editable-image={`items.${i}.image`}>
                   <img
                     src={card.image}
                     alt={card.title}
@@ -56,19 +58,22 @@ export function CardsSection({
                   />
                 </div>
               ) : (
-                <div className="flex aspect-[16/10] items-center justify-center bg-[var(--muted)]">
+                <div className="flex aspect-[16/10] items-center justify-center bg-[var(--muted)]" data-editable-image={`items.${i}.image`}>
                   <ImageIcon className="h-8 w-8 text-[var(--muted-foreground)]/30" />
                 </div>
               )}
               <div className="p-5">
-                <h3 className="mb-2 text-lg font-semibold text-[var(--card-foreground)]">
+                <h3 className="mb-2 text-lg font-semibold text-[var(--card-foreground)]" data-editable-text={`items.${i}.title`}>
                   {card.title}
                 </h3>
-                <p className="text-sm text-[var(--muted-foreground)]">{card.description}</p>
+                <p className="text-sm text-[var(--muted-foreground)]" data-editable-text={`items.${i}.description`}>{card.description}</p>
                 {card.linkUrl && card.linkText && (
                   <a
                     href={card.linkUrl}
                     className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[var(--primary)] hover:underline"
+                    data-editable-link={`items.${i}.linkUrl`}
+                    data-link-text-path={`items.${i}.linkText`}
+                    data-editable-text={`items.${i}.linkText`}
                   >
                     {card.linkText}
                     <ArrowRight className="h-3.5 w-3.5" />

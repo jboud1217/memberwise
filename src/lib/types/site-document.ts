@@ -59,6 +59,12 @@ export interface SectionStyle {
   // Layout
   minHeight?: string;
   verticalAlign?: "top" | "center" | "bottom";
+
+  // Background position
+  backgroundPosition?: string;
+
+  // Opacity
+  opacity?: string;
 }
 
 export interface SiteFonts {
@@ -165,6 +171,7 @@ export type SectionType =
   | "google-reviews"
   | "google-map"
   | "calendar-widget"
+  | "interactive-calendar"
   | "newsletter-signup"
   | "countdown"
   | "social-links"

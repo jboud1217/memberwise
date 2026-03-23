@@ -41,7 +41,10 @@ const fontVariables = [
 ].map((f) => f.variable).join(" ");
 
 export const metadata: Metadata = {
-  title: "MemberWise",
+  title: {
+    default: "MemberWise",
+    template: "%s — MemberWise",
+  },
   description: "AI-native membership management platform",
 };
 

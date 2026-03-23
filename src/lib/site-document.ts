@@ -5,6 +5,14 @@ import { getThemeById } from "@/lib/themes";
 import type { SiteDocument, SectionDocument, PageDocument } from "@/lib/types/site-document";
 import { createEmptySiteDocument } from "@/lib/types/site-document";
 
+/** Strip directory pages and nav links from a site document (directory belongs in the portal only). */
+function stripDirectory(doc: SiteDocument): void {
+  doc.pages = doc.pages.filter((p) => p.slug !== "directory");
+  if (doc.global.header?.navLinks) {
+    doc.global.header.navLinks = doc.global.header.navLinks.filter((l) => l.href !== "/directory");
+  }
+}
+
 /**
  * Get the SiteDocument for a given org. Uses React `cache()` for
  * request-level deduplication. Reads from:
@@ -29,7 +37,9 @@ export const getOrgSiteDocumentCached = cache(async (orgId: string): Promise<Sit
 
   // 1. Try DB-stored document first
   if (org.siteDocument) {
-    return org.siteDocument as unknown as SiteDocument;
+    const doc = org.siteDocument as unknown as SiteDocument;
+    stripDirectory(doc);
+    return doc;
   }
 
   // 2. Try S3 if key exists and AWS is configured
@@ -37,14 +47,19 @@ export const getOrgSiteDocumentCached = cache(async (orgId: string): Promise<Sit
     try {
       const { getSiteDocument: s3GetSiteDocument } = await import("@/lib/s3");
       const doc = await s3GetSiteDocument(orgId);
-      if (doc) return doc;
+      if (doc) {
+        stripDirectory(doc);
+        return doc;
+      }
     } catch {
       // Fall through to DB-based construction
     }
   }
 
   // 3. Fallback: build from template + pageOverrides
-  return buildFromDB(org);
+  const doc = buildFromDB(org);
+  stripDirectory(doc);
+  return doc;
 });
 
 /**

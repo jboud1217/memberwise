@@ -40,12 +40,12 @@ export function SocialLinksSection({
     <section className="py-16 px-6">
       <div className="mx-auto max-w-3xl text-center">
         {heading && (
-          <h2 className="mb-2 text-3xl font-bold text-[var(--foreground)]">
+          <h2 className="mb-2 text-3xl font-bold text-[var(--foreground)]" data-editable-text="heading">
             {heading}
           </h2>
         )}
         {subheading && (
-          <p className="mb-8 text-lg text-[var(--muted-foreground)]">{subheading}</p>
+          <p className="mb-8 text-lg text-[var(--muted-foreground)]" data-editable-text="subheading">{subheading}</p>
         )}
         {links.length > 0 ? (
           <div
@@ -65,9 +65,13 @@ export function SocialLinksSection({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm font-medium text-[var(--card-foreground)] transition-all hover:border-[var(--primary)]/50 hover:shadow-sm"
+                  data-array-item="links"
+                  data-item-index={i}
+                  data-editable-link={`links.${i}.url`}
+                  data-link-text-path={`links.${i}.label`}
                 >
                   <span className="text-lg">{icon}</span>
-                  {link.label || link.platform}
+                  <span data-editable-text={`links.${i}.label`}>{link.label || link.platform}</span>
                 </a>
               );
             })}

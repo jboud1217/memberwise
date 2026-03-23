@@ -61,13 +61,14 @@ export function SectionWrapper({ style, children }: SectionWrapperProps) {
     fontFamily: style.fontFamily || undefined,
     backgroundImage: bgImage,
     backgroundSize: style.backgroundImage || style.backgroundGradient ? "cover" : undefined,
-    backgroundPosition: style.backgroundImage ? "center" : undefined,
+    backgroundPosition: style.backgroundImage ? (style.backgroundPosition || "center") : undefined,
     backgroundAttachment: style.parallax ? "fixed" : undefined,
     borderTop: style.borderTop || undefined,
     borderBottom: style.borderBottom || undefined,
     marginTop: style.marginTop || undefined,
     marginBottom: style.marginBottom || undefined,
     minHeight: style.minHeight || undefined,
+    opacity: style.opacity ? parseFloat(style.opacity) / 100 : undefined,
   };
 
   const verticalAlignClass =
@@ -99,6 +100,7 @@ export function SectionWrapper({ style, children }: SectionWrapperProps) {
       className={classNames}
       data-animate={animationAttr}
       data-animate-delay={style.animationDelay || undefined}
+      {...(style.backgroundImage ? { "data-draggable-bg": "true", "data-bg-position": (cssVars.backgroundPosition as string) || "center" } : {})}
     >
       {maxWidthClass ? (
         <div className={`mx-auto px-4 ${maxWidthClass} w-full`}>{children}</div>

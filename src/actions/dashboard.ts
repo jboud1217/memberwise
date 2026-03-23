@@ -27,7 +27,7 @@ export async function getDashboardStats() {
     db.membershipTier.count({}),
     prisma.organization.findUnique({
       where: { id: session.user.organizationId },
-      select: { customDomain: true, domainVerified: true },
+      select: { customDomain: true, domainVerified: true, stripeConnectOnboarded: true },
     }),
     db.emailCampaign.count({ where: { status: "SENT" } }),
   ]);
@@ -38,7 +38,7 @@ export async function getDashboardStats() {
   const steps = {
     tiers: tiersCount > 0,
     members: totalMembers > 0,
-    stripe: false, // TODO: check stripeConnectOnboarded
+    stripe: hasDomain?.stripeConnectOnboarded ?? false,
     email: hasCampaign > 0,
     domain: !!(hasDomain?.customDomain && hasDomain?.domainVerified),
   };

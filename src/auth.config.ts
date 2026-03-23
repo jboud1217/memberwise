@@ -18,16 +18,16 @@ export const authConfig = {
       if (isSubdomain) return true;
 
       // ?site= param is only for public site routes (not dashboard/auth/settings)
-      const protectedPrefixes = ["/dashboard", "/members", "/contacts", "/tiers", "/billing", "/email", "/analytics", "/settings", "/portal", "/onboarding", "/api"];
+      const protectedPrefixes = ["/dashboard", "/members", "/contacts", "/tiers", "/billing", "/email", "/analytics", "/assets", "/settings", "/portal", "/onboarding", "/api", "/donations", "/documents", "/volunteers", "/committees", "/forms", "/reports", "/events", "/automations"];
       const hasSiteParam = nextUrl.searchParams.has("site");
       if (hasSiteParam && !protectedPrefixes.some((p) => path.startsWith(p))) return true;
 
       // Public routes
-      const publicRoutes = ["/", "/pricing", "/features", "/about", "/contact", "/events"];
+      const publicRoutes = ["/", "/pricing", "/features", "/about", "/contact"];
       if (publicRoutes.includes(path)) return true;
 
       // Auth routes (login, register, etc.) — redirect to dashboard if logged in
-      const authRoutes = ["/login", "/register", "/forgot-password"];
+      const authRoutes = ["/login", "/register", "/forgot-password", "/reset-password"];
       if (authRoutes.some((r) => path.startsWith(r))) {
         if (isLoggedIn) {
           return Response.redirect(new URL("/dashboard", nextUrl));
@@ -41,7 +41,7 @@ export const authConfig = {
       }
 
       // Dashboard routes — require OWNER, ADMIN, or STAFF
-      if (path.startsWith("/dashboard") || path.startsWith("/members") || path.startsWith("/contacts") || path.startsWith("/tiers") || path.startsWith("/billing") || path.startsWith("/email") || path.startsWith("/analytics") || path.startsWith("/settings")) {
+      if (path.startsWith("/dashboard") || path.startsWith("/members") || path.startsWith("/contacts") || path.startsWith("/tiers") || path.startsWith("/billing") || path.startsWith("/email") || path.startsWith("/analytics") || path.startsWith("/assets") || path.startsWith("/settings") || path.startsWith("/donations") || path.startsWith("/documents") || path.startsWith("/volunteers") || path.startsWith("/committees") || path.startsWith("/forms") || path.startsWith("/reports") || path.startsWith("/events") || path.startsWith("/automations")) {
         if (!isLoggedIn) return false;
         const role = auth?.user?.role;
         return role === "OWNER" || role === "ADMIN" || role === "STAFF";

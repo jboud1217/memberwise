@@ -21,7 +21,7 @@ export function LogoCloudSection({
     <section className="py-16 px-6">
       <div className="mx-auto max-w-5xl">
         {heading && (
-          <h2 className="mb-10 text-center text-sm font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+          <h2 className="mb-10 text-center text-sm font-semibold uppercase tracking-wider text-[var(--muted-foreground)]" data-editable-text="heading">
             {heading}
           </h2>
         )}
@@ -37,14 +37,15 @@ export function LogoCloudSection({
                       ? "opacity-60 grayscale hover:opacity-100 hover:grayscale-0"
                       : ""
                   }`}
+                  data-editable-image={`logos.${i}.src`}
                 />
               );
               return logo.url ? (
-                <a key={i} href={logo.url} target="_blank" rel="noopener noreferrer">
+                <a key={i} href={logo.url} target="_blank" rel="noopener noreferrer" data-array-item="logos" data-item-index={i} data-editable-link={`logos.${i}.url`}>
                   {img}
                 </a>
               ) : (
-                <div key={i}>{img}</div>
+                <div key={i} data-array-item="logos" data-item-index={i}>{img}</div>
               );
             })}
           </div>

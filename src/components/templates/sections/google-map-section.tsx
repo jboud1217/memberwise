@@ -20,12 +20,12 @@ export function GoogleMapSection({
     <section className="py-16 px-6">
       <div className="mx-auto max-w-5xl">
         {heading && (
-          <h2 className="mb-4 text-center text-3xl font-bold text-[var(--foreground)]">
+          <h2 className="mb-4 text-center text-3xl font-bold text-[var(--foreground)]" data-editable-text="heading">
             {heading}
           </h2>
         )}
         {address && (
-          <p className="mb-6 text-center text-[var(--muted-foreground)]">
+          <p className="mb-6 text-center text-[var(--muted-foreground)]" data-editable-text="address">
             <MapPin className="mr-1 inline h-4 w-4" />
             {address}
           </p>

@@ -1,11 +1,15 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getOrgSiteDocumentCached } from "@/lib/site-document";
 import { SiteBuilder } from "./site-builder";
 
+export const metadata: Metadata = { title: "Site Builder" };
+
 export default async function TemplateSettingsPage() {
   const session = await auth();
-  if (!session?.user?.organizationId) return null;
+  if (!session?.user?.organizationId) redirect("/login");
 
   const org = await prisma.organization.findUnique({
     where: { id: session.user.organizationId },

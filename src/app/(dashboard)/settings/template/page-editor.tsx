@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useTransition, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,9 +18,16 @@ import {
   ArrowLeft,
   Pencil,
   GripVertical,
+  Paintbrush,
+  Type,
+  Sparkles,
+  Loader2,
+  Search,
 } from "lucide-react";
-import type { PageDocument, SectionDocument, SectionType } from "@/lib/types/site-document";
+import type { PageDocument, SectionDocument, SectionType, SectionStyle } from "@/lib/types/site-document";
 import { SectionEditor, SECTION_TYPE_INFO, SECTION_CATEGORIES } from "./section-editors";
+import { SectionStyleEditor } from "./section-style-editor";
+import { aiGenerateSectionContent } from "@/actions/ai";
 
 // ─── Types ───────────────────────────────────────────
 
@@ -28,6 +35,10 @@ interface PageEditorProps {
   pages: PageDocument[];
   onPagesChange: (pages: PageDocument[]) => void;
   onDirty: () => void;
+  selectedSectionId?: string | null;
+  onSectionSelect?: (sectionId: string | null) => void;
+  insertAtPosition?: { pageSlug: string; position: number } | null;
+  onInsertHandled?: () => void;
 }
 
 // ─── Field Helper ────────────────────────────────────
@@ -43,12 +54,31 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 // ─── Categorized Add Section Picker ─────────────────
 
-function AddSectionPicker({ onAdd, onCancel }: { onAdd: (type: SectionType) => void; onCancel: () => void }) {
-  const [activeCategory, setActiveCategory] = useState<string>("content");
+function AddSectionPicker({
+  onAdd,
+  onAddWithPreset,
+  onCancel,
+}: {
+  onAdd: (type: SectionType) => void;
+  onAddWithPreset: (type: SectionType, preset: SectionPreset) => void;
+  onCancel: () => void;
+}) {
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [search, setSearch] = useState("");
+  const [presetType, setPresetType] = useState<SectionType | null>(null);
 
-  const typesInCategory = Object.entries(SECTION_TYPE_INFO).filter(
-    ([, info]) => info.category === activeCategory
-  );
+  const allTypes = Object.entries(SECTION_TYPE_INFO);
+
+  const filteredTypes = search
+    ? allTypes.filter(
+        ([type, info]) =>
+          info.label.toLowerCase().includes(search.toLowerCase()) ||
+          info.description.toLowerCase().includes(search.toLowerCase()) ||
+          type.toLowerCase().includes(search.toLowerCase())
+      )
+    : activeCategory === "all"
+    ? allTypes
+    : allTypes.filter(([, info]) => info.category === activeCategory);
 
   return (
     <div className="rounded-lg border border-[var(--primary)]/30 bg-[var(--primary)]/5 p-3">
@@ -59,39 +89,256 @@ function AddSectionPicker({ onAdd, onCancel }: { onAdd: (type: SectionType) => v
         </button>
       </div>
 
+      {/* Search */}
+      <div className="relative mb-2">
+        <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted-foreground)]" />
+        <Input
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            if (e.target.value) setActiveCategory("all");
+          }}
+          placeholder="Search sections..."
+          className="h-8 pl-7 text-xs"
+          autoFocus
+        />
+      </div>
+
       {/* Category tabs */}
-      <div className="mb-2 flex flex-wrap gap-1">
-        {SECTION_CATEGORIES.map((cat) => (
+      {!search && (
+        <div className="mb-2 flex flex-wrap gap-1">
           <button
-            key={cat.key}
-            onClick={() => setActiveCategory(cat.key)}
+            onClick={() => setActiveCategory("all")}
             className={cn(
               "rounded-md px-2.5 py-1 text-[10px] font-medium transition-all",
-              activeCategory === cat.key
+              activeCategory === "all"
                 ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
                 : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--accent)]"
             )}
           >
-            {cat.label}
+            All
           </button>
-        ))}
-      </div>
+          {SECTION_CATEGORIES.map((cat) => (
+            <button
+              key={cat.key}
+              onClick={() => setActiveCategory(cat.key)}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-[10px] font-medium transition-all",
+                activeCategory === cat.key
+                  ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                  : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--accent)]"
+              )}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Section types in selected category */}
-      <div className="grid grid-cols-2 gap-1.5">
-        {typesInCategory.map(([type, info]) => (
+      {/* Preset selection view */}
+      {presetType && SECTION_PRESETS[presetType] ? (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 mb-2">
+            <button
+              onClick={() => setPresetType(null)}
+              className="text-[10px] text-[var(--primary)] hover:underline"
+            >
+              &larr; Back
+            </button>
+            <span className="text-[11px] font-medium">
+              {SECTION_TYPE_INFO[presetType]?.icon} {SECTION_TYPE_INFO[presetType]?.label} Presets
+            </span>
+          </div>
           <button
-            key={type}
-            onClick={() => onAdd(type as SectionType)}
-            className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--card)] px-2.5 py-2 text-left transition-all hover:border-[var(--primary)]/50 hover:bg-[var(--accent)]"
+            onClick={() => onAdd(presetType)}
+            className="flex w-full items-center gap-2 rounded-md border border-dashed border-[var(--border)] bg-[var(--card)] px-3 py-2 text-left transition-all hover:border-[var(--primary)]/50 hover:bg-[var(--accent)]"
           >
-            <span className="text-sm">{info.icon}</span>
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium leading-tight">{info.label}</p>
-              <p className="text-[9px] text-[var(--muted-foreground)] leading-tight truncate">{info.description}</p>
+            <Plus className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
+            <div>
+              <p className="text-[11px] font-medium">Blank</p>
+              <p className="text-[9px] text-[var(--muted-foreground)]">Start with default content</p>
             </div>
           </button>
-        ))}
+          {SECTION_PRESETS[presetType]!.map((preset, i) => (
+            <button
+              key={i}
+              onClick={() => onAddWithPreset(presetType, preset)}
+              className="flex w-full items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-left transition-all hover:border-[var(--primary)]/50 hover:bg-[var(--accent)] hover:shadow-sm"
+            >
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-500" />
+              <div>
+                <p className="text-[11px] font-medium">{preset.name}</p>
+                <p className="text-[9px] text-[var(--muted-foreground)]">{preset.description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : (
+        /* Section types */
+        <div className="grid grid-cols-2 gap-1.5 max-h-[280px] overflow-y-auto">
+          {filteredTypes.length === 0 ? (
+            <p className="col-span-2 py-4 text-center text-xs text-[var(--muted-foreground)]">No sections match your search</p>
+          ) : (
+            filteredTypes.map(([type, info]) => {
+              const hasPresets = SECTION_PRESETS[type as SectionType]?.length;
+              return (
+                <button
+                  key={type}
+                  onClick={() => {
+                    if (hasPresets) {
+                      setPresetType(type as SectionType);
+                    } else {
+                      onAdd(type as SectionType);
+                    }
+                  }}
+                  className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--card)] px-2.5 py-2 text-left transition-all hover:border-[var(--primary)]/50 hover:bg-[var(--accent)] hover:shadow-sm"
+                >
+                  <span className="text-base shrink-0">{info.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-medium leading-tight">{info.label}</p>
+                    <p className="text-[9px] text-[var(--muted-foreground)] leading-tight truncate">{info.description}</p>
+                  </div>
+                  {hasPresets && (
+                    <span className="rounded bg-violet-100 px-1 py-0.5 text-[8px] font-medium text-violet-600 shrink-0">
+                      Presets
+                    </span>
+                  )}
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Section Editor Tabs (Content / Style) ──────────
+
+function SectionEditorTabs({
+  section,
+  onUpdate,
+}: {
+  section: SectionDocument;
+  onUpdate: (section: SectionDocument) => void;
+}) {
+  const [activeTab, setActiveTab] = useState<"content" | "style">("content");
+  const [aiPending, startAiTransition] = useTransition();
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [showAiPrompt, setShowAiPrompt] = useState(false);
+  const [aiError, setAiError] = useState("");
+
+  // Sections that don't benefit from AI content generation
+  const noAiTypes = new Set(["spacer", "divider", "custom-html", "google-map", "calendar-widget", "social-feed", "social-links"]);
+  const showAiButton = !noAiTypes.has(section.type);
+
+  function handleAiGenerate(prompt?: string) {
+    setAiError("");
+    startAiTransition(async () => {
+      const result = await aiGenerateSectionContent(section.type, section.props, prompt);
+      if ("error" in result) {
+        setAiError(result.error || "AI generation failed");
+      } else if (result.props) {
+        onUpdate({ ...section, props: result.props });
+        setShowAiPrompt(false);
+        setAiPrompt("");
+      }
+    });
+  }
+
+  return (
+    <div>
+      <div className="flex border-b border-[var(--border)]">
+        <button
+          type="button"
+          onClick={() => setActiveTab("content")}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors",
+            activeTab === "content"
+              ? "border-b-2 border-[var(--primary)] text-[var(--primary)]"
+              : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+          )}
+        >
+          <Type className="h-3.5 w-3.5" />
+          Content
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("style")}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors",
+            activeTab === "style"
+              ? "border-b-2 border-[var(--primary)] text-[var(--primary)]"
+              : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+          )}
+        >
+          <Paintbrush className="h-3.5 w-3.5" />
+          Style
+        </button>
+        {showAiButton && (
+          <div className="ml-auto flex items-center pr-2">
+            <button
+              type="button"
+              onClick={() => setShowAiPrompt(!showAiPrompt)}
+              disabled={aiPending}
+              className={cn(
+                "flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
+                showAiPrompt
+                  ? "bg-violet-100 text-violet-700"
+                  : "text-violet-600 hover:bg-violet-50"
+              )}
+            >
+              {aiPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+              AI
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* AI prompt bar */}
+      {showAiPrompt && (
+        <div className="border-b border-[var(--border)] bg-violet-50/50 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <Input
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAiGenerate(aiPrompt || undefined);
+                }
+              }}
+              placeholder="Describe what you want (or leave empty for auto-generate)..."
+              className="flex-1 text-xs h-8 bg-white"
+              disabled={aiPending}
+            />
+            <Button
+              size="sm"
+              onClick={() => handleAiGenerate(aiPrompt || undefined)}
+              disabled={aiPending}
+              className="h-8 bg-violet-600 hover:bg-violet-700 text-xs"
+            >
+              {aiPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Generate"}
+            </Button>
+          </div>
+          {aiError && (
+            <p className="mt-1.5 text-[10px] text-red-500">{aiError}</p>
+          )}
+        </div>
+      )}
+
+      <div className="p-3">
+        {activeTab === "content" ? (
+          <SectionEditor
+            section={section}
+            onChange={(newProps) => onUpdate({ ...section, props: newProps })}
+          />
+        ) : (
+          <SectionStyleEditor
+            style={section.style || {}}
+            onChange={(newStyle) => onUpdate({ ...section, style: newStyle })}
+          />
+        )}
       </div>
     </div>
   );
@@ -241,13 +488,11 @@ function SectionItem({
             </button>
           </div>
 
-          {/* Section editor */}
-          <div className="p-3">
-            <SectionEditor
-              section={section}
-              onChange={(newProps) => onUpdate({ ...section, props: newProps })}
-            />
-          </div>
+          {/* Section editor with tabs */}
+          <SectionEditorTabs
+            section={section}
+            onUpdate={onUpdate}
+          />
         </div>
       )}
     </div>
@@ -261,14 +506,37 @@ function PageDetail({
   onBack,
   onUpdate,
   onDirty,
+  selectedSectionId,
+  insertAtPosition,
+  onInsertHandled,
 }: {
   page: PageDocument;
   onBack: () => void;
   onUpdate: (page: PageDocument) => void;
   onDirty: () => void;
+  selectedSectionId?: string | null;
+  insertAtPosition?: number;
+  onInsertHandled?: () => void;
 }) {
   const [openSection, setOpenSection] = useState<string | null>(null);
+
+  // Auto-open section when clicked from preview
+  useEffect(() => {
+    if (selectedSectionId && page.sections.some((s) => s.id === selectedSectionId)) {
+      setOpenSection(selectedSectionId);
+    }
+  }, [selectedSectionId, page.sections]);
   const [showAddPicker, setShowAddPicker] = useState(false);
+  const [addAtIndex, setAddAtIndex] = useState<number | null>(null);
+
+  // Handle insert from visual editor
+  useEffect(() => {
+    if (insertAtPosition !== undefined) {
+      setAddAtIndex(insertAtPosition);
+      setShowAddPicker(true);
+      onInsertHandled?.();
+    }
+  }, [insertAtPosition, onInsertHandled]);
   const [editingTitle, setEditingTitle] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -334,9 +602,37 @@ function PageDetail({
       style: {},
       visible: true,
     };
-    onUpdate({ ...page, sections: [...page.sections, newSection] });
+    if (addAtIndex !== null) {
+      const sections = [...page.sections];
+      sections.splice(addAtIndex, 0, newSection);
+      onUpdate({ ...page, sections });
+    } else {
+      onUpdate({ ...page, sections: [...page.sections, newSection] });
+    }
     onDirty();
     setShowAddPicker(false);
+    setAddAtIndex(null);
+    setOpenSection(newSection.id);
+  }
+
+  function addSectionWithPreset(type: SectionType, preset: SectionPreset) {
+    const newSection: SectionDocument = {
+      id: `${type}-${Date.now()}`,
+      type,
+      props: preset.props,
+      style: (preset.style || {}) as SectionDocument["style"],
+      visible: true,
+    };
+    if (addAtIndex !== null) {
+      const sections = [...page.sections];
+      sections.splice(addAtIndex, 0, newSection);
+      onUpdate({ ...page, sections });
+    } else {
+      onUpdate({ ...page, sections: [...page.sections, newSection] });
+    }
+    onDirty();
+    setShowAddPicker(false);
+    setAddAtIndex(null);
     setOpenSection(newSection.id);
   }
 
@@ -415,7 +711,7 @@ function PageDetail({
         {/* Add section */}
         <div className="pt-1">
           {showAddPicker ? (
-            <AddSectionPicker onAdd={addSection} onCancel={() => setShowAddPicker(false)} />
+            <AddSectionPicker onAdd={addSection} onAddWithPreset={addSectionWithPreset} onCancel={() => setShowAddPicker(false)} />
           ) : (
             <Button
               variant="outline"
@@ -443,7 +739,6 @@ function getDefaultProps(type: SectionType): Record<string, unknown> {
     stats: { heading: "By the Numbers", items: [{ value: "100+", label: "Members" }] },
     "contact-form": { fields: ["name", "email", "message"] },
     "events-list": { heading: "Upcoming Events", showPast: false, limit: 10 },
-    "directory-grid": { showSearch: true, columns: 3 },
     faq: { heading: "FAQ", items: [{ question: "Your question here?", answer: "Your answer here." }] },
     gallery: { heading: "Gallery", columns: 3, images: [] },
 
@@ -483,10 +778,134 @@ function getDefaultProps(type: SectionType): Record<string, unknown> {
   return defaults[type] || {};
 }
 
+// ─── Section Presets ─────────────────────────────────
+
+interface SectionPreset {
+  name: string;
+  description: string;
+  props: Record<string, unknown>;
+  style?: Record<string, unknown>;
+}
+
+const SECTION_PRESETS: Partial<Record<SectionType, SectionPreset[]>> = {
+  hero: [
+    {
+      name: "Bold Welcome",
+      description: "Large heading with gradient background",
+      props: { heading: "Welcome to Our Community", subheading: "Join thousands of members making a difference together.", ctaText: "Become a Member", ctaLink: "/register", size: "large" },
+      style: { backgroundGradient: { type: "linear", angle: 135, stops: [{ color: "#4f46e5", position: 0 }, { color: "#7c3aed", position: 100 }] }, textColor: "#ffffff", padding: { top: "6rem", bottom: "6rem" } },
+    },
+    {
+      name: "Minimal",
+      description: "Clean, centered hero with subtle styling",
+      props: { heading: "Empowering Our Members", subheading: "Discover the benefits of membership and how we support your growth.", ctaText: "Learn More", ctaLink: "/about", size: "medium" },
+    },
+  ],
+  features: [
+    {
+      name: "Benefits Grid",
+      description: "3-column member benefits",
+      props: {
+        heading: "Member Benefits",
+        items: [
+          { icon: "Award", title: "Professional Development", description: "Access exclusive workshops, certifications, and training programs." },
+          { icon: "Users", title: "Networking", description: "Connect with peers and industry leaders at our regular events." },
+          { icon: "Shield", title: "Advocacy", description: "We represent your interests at the local and national level." },
+        ],
+      },
+    },
+  ],
+  testimonials: [
+    {
+      name: "Member Spotlight",
+      description: "3 member testimonials",
+      props: {
+        heading: "What Our Members Say",
+        items: [
+          { quote: "Joining was the best professional decision I've made. The networking opportunities alone are worth it.", author: "Sarah Chen", role: "Member since 2022" },
+          { quote: "The workshops and events have helped me grow both personally and professionally.", author: "Marcus Johnson", role: "Board Member" },
+          { quote: "I love being part of a community that truly cares about making a difference.", author: "Emily Rodriguez", role: "Volunteer Coordinator" },
+        ],
+      },
+    },
+  ],
+  stats: [
+    {
+      name: "Impact Numbers",
+      description: "Organization impact statistics",
+      props: {
+        heading: "Our Impact",
+        items: [
+          { value: "500+", label: "Active Members" },
+          { value: "50+", label: "Events Per Year" },
+          { value: "25+", label: "Years of Service" },
+          { value: "$1M+", label: "Community Investment" },
+        ],
+      },
+      style: { backgroundColor: "#f8fafc", padding: { top: "4rem", bottom: "4rem" } },
+    },
+  ],
+  cta: [
+    {
+      name: "Join CTA",
+      description: "Membership signup call to action",
+      props: { heading: "Ready to Make a Difference?", description: "Join our growing community of members and unlock exclusive benefits, events, and resources.", ctaText: "Join Now", ctaLink: "/register" },
+      style: { backgroundGradient: { type: "linear", angle: 135, stops: [{ color: "#4f46e5", position: 0 }, { color: "#6366f1", position: 100 }] }, textColor: "#ffffff", padding: { top: "5rem", bottom: "5rem" } },
+    },
+  ],
+  faq: [
+    {
+      name: "Membership FAQ",
+      description: "Common membership questions",
+      props: {
+        heading: "Frequently Asked Questions",
+        items: [
+          { question: "How do I become a member?", answer: "You can sign up online through our registration page. The process takes just a few minutes." },
+          { question: "What are the membership fees?", answer: "We offer several tiers to fit your needs. Visit our pricing page for current rates." },
+          { question: "Can I cancel my membership?", answer: "Yes, you can cancel at any time. Contact our team and we'll process your request." },
+          { question: "What events are included?", answer: "Members get access to all regular events, with discounts on premium workshops and conferences." },
+        ],
+      },
+    },
+  ],
+  pricing: [
+    {
+      name: "3-Tier Pricing",
+      description: "Three membership levels",
+      props: {
+        heading: "Choose Your Membership",
+        subheading: "Find the right membership level for you.",
+        tiers: [
+          { name: "Individual", price: "$50", period: "year", description: "For individuals", features: ["Community access", "Monthly newsletter", "Event notifications"], ctaText: "Join", ctaLink: "/register", highlighted: false },
+          { name: "Professional", price: "$125", period: "year", description: "Most popular", features: ["Everything in Individual", "Event discounts", "Member directory", "Professional development"], ctaText: "Join", ctaLink: "/register", highlighted: true },
+          { name: "Corporate", price: "$500", period: "year", description: "For teams", features: ["Everything in Professional", "5 team members included", "Sponsor visibility", "Board meeting access"], ctaText: "Contact Us", ctaLink: "/contact", highlighted: false },
+        ],
+      },
+    },
+  ],
+};
+
 // ─── Main Page Editor ────────────────────────────────
 
-export function PageEditor({ pages, onPagesChange, onDirty }: PageEditorProps) {
+export function PageEditor({ pages, onPagesChange, onDirty, selectedSectionId, onSectionSelect, insertAtPosition, onInsertHandled }: PageEditorProps) {
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
+
+  // Auto-navigate to the page containing the selected section
+  useEffect(() => {
+    if (!selectedSectionId) return;
+    for (const page of pages) {
+      if (page.sections.some((s) => s.id === selectedSectionId)) {
+        setSelectedPage(page.slug);
+        return;
+      }
+    }
+  }, [selectedSectionId, pages]);
+
+  // Handle insert at position from visual editor
+  useEffect(() => {
+    if (!insertAtPosition) return;
+    setSelectedPage(insertAtPosition.pageSlug);
+  }, [insertAtPosition]);
   const [showNewPage, setShowNewPage] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState("");
 
@@ -534,6 +953,9 @@ export function PageEditor({ pages, onPagesChange, onDirty }: PageEditorProps) {
         onBack={() => setSelectedPage(null)}
         onUpdate={updatePage}
         onDirty={onDirty}
+        selectedSectionId={selectedSectionId}
+        insertAtPosition={activePage.slug === insertAtPosition?.pageSlug ? insertAtPosition.position : undefined}
+        onInsertHandled={onInsertHandled}
       />
     );
   }
