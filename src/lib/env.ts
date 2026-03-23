@@ -20,9 +20,9 @@ export const env = {
   // Database
   DATABASE_URL: required("DATABASE_URL"),
 
-  // Auth
-  NEXTAUTH_SECRET: required("NEXTAUTH_SECRET"),
-  NEXTAUTH_URL: optional("NEXTAUTH_URL", "http://localhost:3000"),
+  // Auth (NextAuth.js v5 uses AUTH_SECRET / AUTH_URL)
+  AUTH_SECRET: required("AUTH_SECRET"),
+  AUTH_URL: optional("AUTH_URL", "http://localhost:3000"),
 
   // Stripe (required for billing)
   STRIPE_SECRET_KEY: optional("STRIPE_SECRET_KEY"),

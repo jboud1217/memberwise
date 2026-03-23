@@ -1,5 +1,13 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_placeholder_not_configured", {
-  apiVersion: "2026-02-25.clover",
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+if (!stripeSecretKey) {
+  console.warn(
+    "STRIPE_SECRET_KEY is not set. Stripe features will not work until configured."
+  );
+}
+
+export const stripe = new Stripe(stripeSecretKey || "", {
+  apiVersion: "2025-04-30.basil",
 });

@@ -36,12 +36,9 @@ export function tenantPrisma(prisma: PrismaClient, organizationId: string) {
           return query(args);
         },
         async update({ args, query }) {
-          // Fetch record first and verify tenant ownership
-          const result = await query(args);
-          if (result && "organizationId" in result && result.organizationId !== organizationId) {
-            throw new Error("Tenant isolation violation: record does not belong to this organization");
-          }
-          return result;
+          // Inject organizationId into the where clause to enforce tenant isolation
+          args.where = { ...args.where, organizationId };
+          return query(args);
         },
         async upsert({ args, query }) {
           args.create = { ...args.create, organizationId } as typeof args.create;
@@ -52,12 +49,9 @@ export function tenantPrisma(prisma: PrismaClient, organizationId: string) {
           return query(args);
         },
         async delete({ args, query }) {
-          // Fetch record first and verify tenant ownership
-          const result = await query(args);
-          if (result && "organizationId" in result && result.organizationId !== organizationId) {
-            throw new Error("Tenant isolation violation: cannot delete record from another organization");
-          }
-          return result;
+          // Inject organizationId into the where clause to enforce tenant isolation
+          args.where = { ...args.where, organizationId };
+          return query(args);
         },
         async deleteMany({ args, query }) {
           args.where = { ...args.where, organizationId };

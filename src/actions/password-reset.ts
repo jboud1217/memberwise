@@ -37,7 +37,7 @@ export async function requestPasswordReset(email: string) {
   });
 
   // Send email
-  const resetUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/reset-password?token=${token}&email=${encodeURIComponent(email.toLowerCase())}`;
+  const resetUrl = `${process.env.AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=${token}&email=${encodeURIComponent(email.toLowerCase())}`;
 
   try {
     if (process.env.RESEND_API_KEY) {

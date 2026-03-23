@@ -27,7 +27,7 @@ export const authConfig = {
       if (publicRoutes.includes(path)) return true;
 
       // Auth routes (login, register, etc.) — redirect to dashboard if logged in
-      const authRoutes = ["/login", "/register", "/forgot-password", "/reset-password"];
+      const authRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/invite"];
       if (authRoutes.some((r) => path.startsWith(r))) {
         if (isLoggedIn) {
           return Response.redirect(new URL("/dashboard", nextUrl));
