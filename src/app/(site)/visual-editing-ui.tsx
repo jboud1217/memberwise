@@ -305,29 +305,57 @@ export function SectionLabel({ type, selected }: { type: string; selected: boole
 
 // ─── Drag Handle ─────────────────────────────────────
 
-export function DragHandle() {
+interface DragHandleProps {
+  sectionId: string;
+  onDragStart: (sectionId: string) => void;
+  onDragEnd: () => void;
+}
+
+export function DragHandle({ sectionId, onDragStart, onDragEnd }: DragHandleProps) {
   return (
     <div
+      data-visual-ui="drag-handle"
+      draggable
+      onDragStart={(e) => {
+        e.stopPropagation();
+        e.dataTransfer.setData("text/plain", sectionId);
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart(sectionId);
+      }}
+      onDragEnd={(e) => {
+        e.stopPropagation();
+        onDragEnd();
+      }}
       style={{
         position: "absolute",
         top: 8,
         right: 8,
         zIndex: 50,
-        background: "rgba(0,0,0,0.65)",
+        background: "rgba(0,0,0,0.7)",
         color: "#fff",
-        padding: "4px 8px",
-        borderRadius: 4,
+        padding: "5px 10px",
+        borderRadius: 6,
         cursor: "grab",
-        fontFamily: "system-ui",
+        fontFamily: "system-ui, -apple-system, sans-serif",
         backdropFilter: "blur(8px)",
         display: "flex",
         alignItems: "center",
-        gap: 4,
+        gap: 5,
+        userSelect: "none",
+        transition: "background 150ms, transform 150ms",
       }}
-      title="Drag to reorder"
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "rgba(99,102,241,0.9)";
+        e.currentTarget.style.transform = "scale(1.05)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "rgba(0,0,0,0.7)";
+        e.currentTarget.style.transform = "";
+      }}
+      title="Drag to reorder this section"
     >
       <SvgIcon d="M8 6h.01M12 6h.01M16 6h.01M8 12h.01M12 12h.01M16 12h.01M8 18h.01M12 18h.01M16 18h.01" size={14} />
-      <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.02em" }}>DRAG</span>
+      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.04em" }}>DRAG</span>
     </div>
   );
 }
@@ -700,10 +728,17 @@ export function useInlineEditing(
       if (iconEl) {
         e.preventDefault();
         e.stopPropagation();
+        // Preserve scroll position — React re-render can cause scroll shift
+        const scrollX = window.scrollX;
+        const scrollY = window.scrollY;
         selectSection();
         const propPath = iconEl.getAttribute("data-prop-path") || "";
         const currentIcon = iconEl.getAttribute("data-editable-icon") || "Star";
         onOpenIconPicker?.(iconEl, sectionId!, propPath, currentIcon);
+        // Restore scroll position after React render
+        requestAnimationFrame(() => {
+          window.scrollTo(scrollX, scrollY);
+        });
         return;
       }
 
@@ -1344,10 +1379,8 @@ export function InlineIconPicker({
   const ref = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // Position the picker near the icon
-  const [pos, setPos] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
+  // Calculate position immediately to avoid flash at (0,0)
+  const [pos, setPos] = useState(() => {
     const r = state.rect;
     let x = r.left + r.width / 2 - 160; // center the 320px picker
     let y = r.bottom + 8;
@@ -1358,12 +1391,14 @@ export function InlineIconPicker({
     if (y + 340 > window.innerHeight) y = r.top - 348;
     if (y < 8) y = 8;
 
-    setPos({ x, y });
-  }, [state.rect]);
+    return { x, y };
+  });
 
-  // Focus search on mount
+  // Focus search on mount without causing scroll
   useEffect(() => {
-    setTimeout(() => searchRef.current?.focus(), 50);
+    setTimeout(() => {
+      searchRef.current?.focus({ preventScroll: true });
+    }, 50);
   }, []);
 
   // Close on click outside
@@ -1542,14 +1577,32 @@ export function VisualModeStyles() {
       [data-visual-mode] [data-section-id]:hover {
         z-index: 1;
       }
-      [data-visual-mode] [data-editable-icon]:hover {
-        transform: scale(1.1);
-        transition: transform 150ms ease, outline 150ms ease;
+      [data-visual-mode] [data-editable-text] {
+        cursor: text !important;
+        transition: outline 150ms ease, background 150ms ease;
       }
       [data-visual-mode] [data-editable-text]:hover {
-        outline: 1px dashed rgba(99,102,241,0.4);
-        outline-offset: 2px;
-        border-radius: 2px;
+        outline: 2px dashed rgba(99,102,241,0.5);
+        outline-offset: 3px;
+        border-radius: 3px;
+        background: rgba(99,102,241,0.04);
+        position: relative;
+      }
+      [data-visual-mode] [data-editable-text]:not([contenteditable="true"]):hover::after {
+        content: "Click to edit";
+        position: absolute;
+        top: -22px;
+        left: 0;
+        background: rgba(0,0,0,0.8);
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 500;
+        font-family: system-ui, -apple-system, sans-serif;
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 10;
       }
       [data-visual-mode] [data-editable-image] {
         position: relative;
@@ -1611,19 +1664,26 @@ export function VisualModeStyles() {
         z-index: 10;
       }
       [data-visual-mode] [data-editable-icon] {
-        cursor: pointer;
-        transition: transform 150ms ease, outline 150ms ease;
+        cursor: pointer !important;
+        position: relative;
+        transition: transform 150ms ease, outline 150ms ease, box-shadow 150ms ease;
+      }
+      [data-visual-mode] [data-editable-icon]:hover {
+        transform: scale(1.1);
+        outline: 2px dashed rgba(99,102,241,0.5);
+        outline-offset: 4px;
+        border-radius: 50%;
       }
       [data-visual-mode] [data-editable-icon]:hover::after {
         content: "Click to change icon";
         position: absolute;
-        bottom: -20px;
+        bottom: -24px;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(0,0,0,0.75);
+        background: rgba(0,0,0,0.8);
         color: #fff;
-        padding: 3px 10px;
-        border-radius: 4px;
+        padding: 4px 10px;
+        border-radius: 5px;
         font-size: 10px;
         font-weight: 500;
         font-family: system-ui, -apple-system, sans-serif;
@@ -1699,16 +1759,7 @@ export function VisualModeStyles() {
         );
         border-color: rgba(99,102,241,0.4);
       }
-      /* Button elements in visual mode should show pointer */
-      [data-visual-mode] [data-editable-text] {
-        cursor: text !important;
-      }
-      [data-visual-mode] [data-editable-image] {
-        cursor: pointer !important;
-      }
-      [data-visual-mode] [data-editable-link] {
-        cursor: pointer !important;
-      }
+      /* Cursor overrides are handled in the main rules above */
       /* Array item hover highlight */
       [data-visual-mode] [data-array-item]:hover {
         outline: 1px dashed rgba(99,102,241,0.3);

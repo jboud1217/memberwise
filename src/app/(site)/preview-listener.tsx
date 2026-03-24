@@ -730,24 +730,6 @@ export function PreviewListener() {
         <div key={section.id}>
           <div
             data-section-id={section.id}
-            draggable={visualMode && selectedSectionId !== section.id}
-            onDragStart={(e) => {
-              if (!visualMode) return;
-              e.dataTransfer.setData("text/plain", section.id);
-              e.dataTransfer.effectAllowed = "move";
-              setDraggingId(section.id);
-              // Make the drag image semi-transparent
-              if (e.currentTarget instanceof HTMLElement) {
-                e.currentTarget.style.opacity = "0.5";
-              }
-            }}
-            onDragEnd={(e) => {
-              setDraggingId(null);
-              setDragOverIndex(null);
-              if (e.currentTarget instanceof HTMLElement) {
-                e.currentTarget.style.opacity = "";
-              }
-            }}
             onDragOver={(e) => {
               if (!visualMode || !draggingId || draggingId === section.id) return;
               e.preventDefault();
@@ -781,12 +763,10 @@ export function PreviewListener() {
             onClick={(e) => {
               // Don't handle if clicking on a contentEditable element
               if ((e.target as HTMLElement).contentEditable === "true") return;
-              // Don't handle if clicking on toolbar
+              // Don't handle if clicking on visual editor UI (toolbar, drag handle, etc.)
               if ((e.target as HTMLElement).closest("[data-visual-ui]")) return;
 
               if (visualMode) {
-                e.preventDefault();
-                e.stopPropagation();
                 setSelectedSectionId(section.id);
               }
               // Always notify parent of section click
@@ -805,7 +785,7 @@ export function PreviewListener() {
                   : "2px solid transparent",
               outlineOffset: "-2px",
               transition: "outline-color 150ms ease, opacity 200ms ease",
-              cursor: visualMode ? "pointer" : "default",
+              cursor: visualMode ? "default" : "default",
               opacity: draggingId === section.id ? 0.4 : section.visible === false && visualMode ? 0.35 : 1,
               filter: section.visible === false && visualMode ? "grayscale(0.5)" : undefined,
             }}
@@ -826,8 +806,14 @@ export function PreviewListener() {
               <SectionLabel type={section.type} selected={selectedSectionId === section.id} />
             )}
 
-            {/* Drag handle */}
-            {visualMode && <DragHandle />}
+            {/* Drag handle — only drag trigger for sections */}
+            {visualMode && (
+              <DragHandle
+                sectionId={section.id}
+                onDragStart={(id) => setDraggingId(id)}
+                onDragEnd={() => { setDraggingId(null); setDragOverIndex(null); }}
+              />
+            )}
 
             {/* Floating toolbar for selected section */}
             {visualMode && selectedSectionId === section.id && (
